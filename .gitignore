@@ -2,3 +2,5 @@ src/.env
 src/dataset
 src/Resources
 LangChain
+.idea
+__pycache__
