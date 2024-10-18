@@ -1,0 +1,233 @@
+theory ASW begin
+
+// Function signature and definition of the equational theory E
+
+functions: adec/2, aenc/2, fst/1, h/1, pair/2, pk/1, sk/1, snd/1
+equations:
+    adec(aenc(x.1, pk(x.2)), sk(x.2)) = x.1,
+    adec(aenc(x.1, sk(x.2)), pk(x.2)) = x.1,
+    fst(<x.1, x.2>) = x.1,
+    snd(<x.1, x.2>) = x.2
+
+
+
+
+
+
+
+rule (modulo E) Asymmetric_key_setup:
+   [ Fr( ~f ) ] --> [ !Sk( $A, sk(~f) ), !Pk( $A, pk(~f) ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Publish_public_keys:
+   [ !Pk( A, pkA ) ] --> [ Out( pkA ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Init_Knowledge:
+   [
+   !Pk( $A, pk(k_A) ), !Pk( $B, pk(k_B) ), !Sk( $A, sk(k_A) ),
+   !Sk( $B, sk(k_B) ), Fr( ~m )
+   ]
+  --[ Secret( ~m ) ]->
+   [
+   St_init_A( $A, $B, ~m, sk(k_A), pk(k_A), pk(k_B) ),
+   St_init_B( $A, $B, sk(k_B), pk(k_A), pk(k_B) )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) asw1_A:
+   [ St_init_A( A, B, m, sk(k_A), pk(k_A), pk(k_B) ), Fr( ~n_1 ) ]
+  -->
+   [
+   Out( aenc(<pk(k_A), pk(k_B), m, h(~n_1)>, sk(k_A)) ),
+   St_asw1_A( A, B, m, ~n_1, sk(k_A), pk(k_A), pk(k_B) )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) asw2_A:
+   [
+   St_asw1_A( A, B, m, n_1, sk(k_A), pk(k_A), pk(k_B) ),
+   In( aenc(<aenc(<pk(k_A), pk(k_B), m, h(n_1)>, sk(k_A)), alpha>, sk(k_B))
+   )
+   ]
+  -->
+   [
+   St_asw2_A( A, B, m, n_1, sk(k_A), pk(k_A), pk(k_B),
+              aenc(<aenc(<pk(k_A), pk(k_B), m, h(n_1)>, sk(k_A)), alpha>, sk(k_B)),
+              alpha
+   )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) asw3_A:
+   [ St_asw2_A( A, B, m, n_1, sk(k_A), pk(k_A), pk(k_B), beta, alpha ) ]
+  -->
+   [
+   Out( n_1 ),
+   St_asw3_A( A, B, m, n_1, sk(k_A), pk(k_A), pk(k_B), beta, alpha )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) asw4_A:
+   [
+   St_asw3_A( A, B, m, n_1, sk(k_A), pk(k_A), pk(k_B),
+              aenc(<aenc(<pk(k_A), pk(k_B), m, h(n_1)>, sk(k_A)), h(n_2)>, sk(k_B)),
+              h(n_2)
+   ),
+   In( n_2 )
+   ]
+  -->
+   [
+   St_asw4_A( A, B, m, n_1, n_2, sk(k_A), pk(k_A), pk(k_B),
+              aenc(<aenc(<pk(k_A), pk(k_B), m, h(n_1)>, sk(k_A)), h(n_2)>, sk(k_B))
+   )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) asw1_B:
+   [
+   St_init_B( A, B, sk(k_B), pk(k_A), pk(k_B) ),
+   In( aenc(<pk(k_A), pk(k_B), m, alpha>, sk(k_A)) )
+   ]
+  -->
+   [
+   St_asw1_B( A, B, m, sk(k_B), pk(k_A), pk(k_B),
+              aenc(<pk(k_A), pk(k_B), m, alpha>, sk(k_A)), alpha
+   )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) asw2_B:
+   [
+   St_asw1_B( A, B, m, sk(k_B), pk(k_A), pk(k_B), beta, alpha ), Fr( ~n_2 )
+   ]
+  -->
+   [
+   Out( aenc(<beta, h(~n_2)>, sk(k_B)) ),
+   St_asw2_B( A, B, m, ~n_2, sk(k_B), pk(k_A), pk(k_B), beta, alpha )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) asw3_B:
+   [
+   St_asw2_B( A, B, m, n_2, sk(k_B), pk(k_A), pk(k_B),
+              aenc(<pk(k_A), pk(k_B), m, h(n_1)>, sk(k_A)), h(n_1)
+   ),
+   In( n_1 )
+   ]
+  -->
+   [
+   St_asw3_B( A, B, m, n_1, n_2, sk(k_B), pk(k_A), pk(k_B),
+              aenc(<pk(k_A), pk(k_B), m, h(n_1)>, sk(k_A))
+   )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) asw4_B:
+   [ St_asw3_B( A, B, m, n_1, n_2, sk(k_B), pk(k_A), pk(k_B), beta ) ]
+  -->
+   [
+   Out( n_2 ),
+   St_asw4_B( A, B, m, n_1, n_2, sk(k_B), pk(k_A), pk(k_B), beta )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+lemma Secrecy:
+  all-traces "¬(∃ m #t1 #t2. (Secret( m ) @ #t1) ∧ (K( m ) @ #t2))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ m #t1 #t2. (Secret( m ) @ #t1) ∧ (K( m ) @ #t2)"
+*/
+simplify
+solve( !Pk( $A, pk(k_A) ) ▶₀ #t1 )
+  case Asymmetric_key_setup
+  solve( !Pk( $B, pk(k_B) ) ▶₁ #t1 )
+    case Asymmetric_key_setup
+    solve( !Sk( $A, sk(~f) ) ▶₂ #t1 )
+      case Asymmetric_key_setup
+      solve( !Sk( $B, sk(~f.1) ) ▶₃ #t1 )
+        case Asymmetric_key_setup
+        solve( !KU( ~m ) @ #vk )
+          case asw1_A
+          solve( !KU( pk(~f) ) @ #vk.1 )
+            case Publish_public_keys
+            SOLVED // trace found
+          qed
+        qed
+      qed
+    qed
+  qed
+qed
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*
+WARNING: the following wellformedness checks failed!
+
+Message Derivation Checks
+=========================
+
+  The variables of the follwing rule(s) are not derivable from their premises, you may be performing unintended pattern matching.
+
+Rule Init_Knowledge: 
+Failed to derive Variable(s): k_A, k_B
+
+Rule asw1_A: 
+Failed to derive Variable(s): k_A, k_B
+
+Rule asw2_A: 
+Failed to derive Variable(s): k_A, k_B
+
+Rule asw3_A: 
+Failed to derive Variable(s): k_A, k_B
+
+Rule asw4_A: 
+Failed to derive Variable(s): k_A, k_B
+
+Rule asw1_B: 
+Failed to derive Variable(s): k_A, k_B
+
+Rule asw2_B: 
+Failed to derive Variable(s): k_A, k_B
+
+Rule asw3_B: 
+Failed to derive Variable(s): k_A, k_B
+
+Rule asw4_B: 
+Failed to derive Variable(s): k_A, k_B
+*/
+
+/*
+Generated from:
+Tamarin version 1.9.0
+Maude version 2.7.1
+Git revision: UNKNOWN, branch: UNKNOWN
+Compiled at: 2024-07-24 13:23:13.794968 UTC
+*/
+
+end

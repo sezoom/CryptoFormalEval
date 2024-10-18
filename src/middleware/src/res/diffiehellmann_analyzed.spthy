@@ -1,0 +1,615 @@
+theory DIFFIE_HELLMAN begin
+
+// Function signature and definition of the equational theory E
+
+builtins: diffie-hellman
+functions: adec/2, aenc/2, fst/1, g/0, pair/2, pk/1, sdec/2, senc/2,
+           sk/1, snd/1
+equations:
+    adec(aenc(x.1, pk(x.2)), sk(x.2)) = x.1,
+    adec(aenc(x.1, sk(x.2)), pk(x.2)) = x.1,
+    fst(<x.1, x.2>) = x.1,
+    sdec(senc(x.1, x.2), x.2) = x.1,
+    snd(<x.1, x.2>) = x.2
+
+
+
+
+
+
+
+
+
+rule (modulo E) Asymmetric_key_setup:
+   [ Fr( ~f ) ] --> [ !Sk( $A, sk(~f) ), !Pk( $A, pk(~f) ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Publish_public_keys:
+   [ !Pk( A, pkA ) ] --> [ Out( pkA ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Symmetric_key_setup:
+   [ Fr( ~symK ) ] --> [ !Key( $A, $B, ~symK ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Init_Knowledge:
+   [
+   !Pk( $A, pk(k_A) ), !Pk( $B, pk(k_B) ), !Sk( $A, sk(k_A) ),
+   !Sk( $B, sk(k_B) ), Fr( ~sec1 ), Fr( ~sec2 )
+   ]
+  -->
+   [
+   St_init_A( $A, ~sec1, ~sec2, sk(k_A), pk(k_A) ),
+   St_init_B( $B, ~sec1, ~sec2, sk(k_B), pk(k_B) )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) dh_1_A:
+   [ St_init_A( A, sec1, sec2, sk(k_A), pk(k_A) ), Fr( ~x ) ]
+  -->
+   [ Out( <sec1, g^~x> ), St_dh_1_A( A, sec1, sec2, ~x, sk(k_A), pk(k_A) ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) dh_2_A:
+   [ St_dh_1_A( A, sec1, sec2, x, sk(k_A), pk(k_A) ), In( alpha ) ]
+  -->
+   [ St_dh_2_A( A, sec1, sec2, x, sk(k_A), pk(k_A), alpha ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) dh_3_A:
+   [ St_dh_2_A( A, sec1, sec2, x, sk(k_A), pk(k_A), alpha ), Fr( ~key ) ]
+  -->
+   [
+   Out( <sec2, senc(~key, alpha^x)> ),
+   St_dh_3_A( A, ~key, sec1, sec2, x, sk(k_A), pk(k_A), alpha )
+   ]
+
+  /*
+  rule (modulo AC) dh_3_A:
+     [ St_dh_2_A( A, sec1, sec2, x, sk(k_A), pk(k_A), alpha ), Fr( ~key ) ]
+    -->
+     [
+     Out( <sec2, senc(~key, z)> ),
+     St_dh_3_A( A, ~key, sec1, sec2, x, sk(k_A), pk(k_A), alpha )
+     ]
+    variants (modulo AC)
+     1. alpha = alpha.9
+        x     = x.9
+        z     = alpha.9^x.9
+    
+     2. alpha = alpha.9
+        x     = one
+        z     = alpha.9
+    
+     3. alpha = DH_neutral
+        z     = DH_neutral
+    
+     4. alpha = x.9^x.10
+        x     = x.11
+        z     = x.9^(x.10*x.11)
+    
+     5. alpha = x.9^x.10
+        x     = inv(x.10)
+        z     = x.9
+    
+     6. alpha = x.9^x.10
+        x     = inv((x.10*x.14))
+        z     = x.9^inv(x.14)
+    
+     7. alpha = x.9^x.10
+        x     = (x.14*inv(x.10))
+        z     = x.9^x.14
+    
+     8. alpha = x.9^x.10
+        x     = (x.14*inv((x.10*x.15)))
+        z     = x.9^(x.14*inv(x.15))
+    
+     9. alpha = x.9^inv(x.10)
+        x     = x.10
+        z     = x.9
+    
+    10. alpha = x.9^inv(x.10)
+        x     = inv(x.14)
+        z     = x.9^inv((x.10*x.14))
+    
+    11. alpha = x.9^inv(x.10)
+        x     = (x.10*x.14)
+        z     = x.9^x.14
+    
+    12. alpha = x.9^inv(x.10)
+        x     = (x.14*inv(x.15))
+        z     = x.9^(x.14*inv((x.10*x.15)))
+    
+    13. alpha = x.9^inv((x.10*x.11))
+        x     = x.10
+        z     = x.9^inv(x.11)
+    
+    14. alpha = x.9^inv((x.10*x.11))
+        x     = (x.10*x.15)
+        z     = x.9^(x.15*inv(x.11))
+    
+    15. alpha = x.9^inv((x.10*x.11))
+        x     = (x.10*x.15*inv(x.16))
+        z     = x.9^(x.15*inv((x.11*x.16)))
+    
+    16. alpha = x.9^inv((x.10*x.11))
+        x     = (x.10*inv(x.15))
+        z     = x.9^inv((x.11*x.15))
+    
+    17. alpha = x.9^(x.10*x.11)
+        x     = inv(x.10)
+        z     = x.9^x.11
+    
+    18. alpha = x.9^(x.10*x.11)
+        x     = inv((x.10*x.15))
+        z     = x.9^(x.11*inv(x.15))
+    
+    19. alpha = x.9^(x.10*x.11)
+        x     = (x.15*inv(x.10))
+        z     = x.9^(x.11*x.15)
+    
+    20. alpha = x.9^(x.10*x.11)
+        x     = (x.15*inv((x.10*x.16)))
+        z     = x.9^(x.11*x.15*inv(x.16))
+    
+    21. alpha = x.9^(x.10*x.11*inv(x.12))
+        x     = inv((x.10*x.16))
+        z     = x.9^(x.11*inv((x.12*x.16)))
+    
+    22. alpha = x.9^(x.10*x.11*inv(x.12))
+        x     = (x.12*x.16*inv(x.10))
+        z     = x.9^(x.11*x.16)
+    
+    23. alpha = x.9^(x.10*x.11*inv(x.12))
+        x     = (x.12*x.16*inv((x.10*x.17)))
+        z     = x.9^(x.11*x.16*inv(x.17))
+    
+    24. alpha = x.9^(x.10*x.11*inv(x.12))
+        x     = (x.12*inv(x.10))
+        z     = x.9^x.11
+    
+    25. alpha = x.9^(x.10*x.11*inv(x.12))
+        x     = (x.12*inv((x.10*x.16)))
+        z     = x.9^(x.11*inv(x.16))
+    
+    26. alpha = x.9^(x.10*x.11*inv(x.12))
+        x     = (x.16*inv((x.10*x.17)))
+        z     = x.9^(x.11*x.16*inv((x.12*x.17)))
+    
+    27. alpha = x.9^(x.10*x.11*inv((x.12*x.13)))
+        x     = (x.12*x.17*inv(x.10))
+        z     = x.9^(x.11*x.17*inv(x.13))
+    
+    28. alpha = x.9^(x.10*x.11*inv((x.12*x.13)))
+        x     = (x.12*x.17*inv((x.10*x.18)))
+        z     = x.9^(x.11*x.17*inv((x.13*x.18)))
+    
+    29. alpha = x.9^(x.10*x.11*inv((x.12*x.13)))
+        x     = (x.12*inv(x.10))
+        z     = x.9^(x.11*inv(x.13))
+    
+    30. alpha = x.9^(x.10*x.11*inv((x.12*x.13)))
+        x     = (x.12*inv((x.10*x.17)))
+        z     = x.9^(x.11*inv((x.13*x.17)))
+    
+    31. alpha = x.9^(x.10*inv(x.11))
+        x     = x.11
+        z     = x.9^x.10
+    
+    32. alpha = x.9^(x.10*inv(x.11))
+        x     = inv(x.15)
+        z     = x.9^(x.10*inv((x.11*x.15)))
+    
+    33. alpha = x.9^(x.10*inv(x.11))
+        x     = inv((x.10*x.15))
+        z     = x.9^inv((x.11*x.15))
+    
+    34. alpha = x.9^(x.10*inv(x.11))
+        x     = (x.11*x.15)
+        z     = x.9^(x.10*x.15)
+    
+    35. alpha = x.9^(x.10*inv(x.11))
+        x     = (x.11*x.15*inv(x.10))
+        z     = x.9^x.15
+    
+    36. alpha = x.9^(x.10*inv(x.11))
+        x     = (x.11*x.15*inv((x.10*x.16)))
+        z     = x.9^(x.15*inv(x.16))
+    
+    37. alpha = x.9^(x.10*inv(x.11))
+        x     = (x.11*inv(x.10))
+        z     = x.9
+    
+    38. alpha = x.9^(x.10*inv(x.11))
+        x     = (x.11*inv((x.10*x.15)))
+        z     = x.9^inv(x.15)
+    
+    39. alpha = x.9^(x.10*inv(x.11))
+        x     = (x.15*inv(x.16))
+        z     = x.9^(x.10*x.15*inv((x.11*x.16)))
+    
+    40. alpha = x.9^(x.10*inv(x.11))
+        x     = (x.15*inv((x.10*x.16)))
+        z     = x.9^(x.15*inv((x.11*x.16)))
+    
+    41. alpha = x.9^(x.10*inv((x.11*x.12)))
+        x     = x.11
+        z     = x.9^(x.10*inv(x.12))
+    
+    42. alpha = x.9^(x.10*inv((x.11*x.12)))
+        x     = (x.11*x.16)
+        z     = x.9^(x.10*x.16*inv(x.12))
+    
+    43. alpha = x.9^(x.10*inv((x.11*x.12)))
+        x     = (x.11*x.16*inv(x.10))
+        z     = x.9^(x.16*inv(x.12))
+    
+    44. alpha = x.9^(x.10*inv((x.11*x.12)))
+        x     = (x.11*x.16*inv(x.17))
+        z     = x.9^(x.10*x.16*inv((x.12*x.17)))
+    
+    45. alpha = x.9^(x.10*inv((x.11*x.12)))
+        x     = (x.11*x.16*inv((x.10*x.17)))
+        z     = x.9^(x.16*inv((x.12*x.17)))
+    
+    46. alpha = x.9^(x.10*inv((x.11*x.12)))
+        x     = (x.11*inv(x.10))
+        z     = x.9^inv(x.12)
+    
+    47. alpha = x.9^(x.10*inv((x.11*x.12)))
+        x     = (x.11*inv(x.16))
+        z     = x.9^(x.10*inv((x.12*x.16)))
+    
+    48. alpha = x.9^(x.10*inv((x.11*x.12)))
+        x     = (x.11*inv((x.10*x.16)))
+        z     = x.9^inv((x.12*x.16))
+  */
+
+rule (modulo E) dh_4_A:
+   [
+   St_dh_3_A( A, key, sec1, sec2, x, sk(k_A), pk(k_A), alpha ),
+   In( senc(m, key) )
+   ]
+  -->
+   [ St_dh_4_A( A, key, m, sec1, sec2, x, sk(k_A), pk(k_A), alpha ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) dh_1_B:
+   [ St_init_B( B, sec1, sec2, sk(k_B), pk(k_B) ), In( <sec1, alpha> ) ]
+  -->
+   [ St_dh_1_B( B, sec1, sec2, sk(k_B), pk(k_B), alpha ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) dh_2_B:
+   [ St_dh_1_B( B, sec1, sec2, sk(k_B), pk(k_B), alpha ), Fr( ~y ) ]
+  -->
+   [ Out( g^~y ), St_dh_2_B( B, sec1, sec2, ~y, sk(k_B), pk(k_B), alpha ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) dh_3_B:
+   [
+   St_dh_2_B( B, sec1, sec2, y, sk(k_B), pk(k_B), alpha ),
+   In( <sec2, senc(key, alpha^y)> )
+   ]
+  -->
+   [ St_dh_3_B( B, key, sec1, sec2, y, sk(k_B), pk(k_B), alpha ) ]
+
+  /*
+  rule (modulo AC) dh_3_B:
+     [
+     St_dh_2_B( B, sec1, sec2, y, sk(k_B), pk(k_B), alpha ),
+     In( <sec2, senc(key, z)> )
+     ]
+    -->
+     [ St_dh_3_B( B, key, sec1, sec2, y, sk(k_B), pk(k_B), alpha ) ]
+    variants (modulo AC)
+     1. alpha = alpha.9
+        y     = y.9
+        z     = alpha.9^y.9
+    
+     2. alpha = alpha.9
+        y     = one
+        z     = alpha.9
+    
+     3. alpha = DH_neutral
+        z     = DH_neutral
+    
+     4. alpha = x.9^x.10
+        y     = y.11
+        z     = x.9^(x.10*y.11)
+    
+     5. alpha = x.9^x.10
+        y     = inv(x.10)
+        z     = x.9
+    
+     6. alpha = x.9^x.10
+        y     = inv((x.10*x.15))
+        z     = x.9^inv(x.15)
+    
+     7. alpha = x.9^x.10
+        y     = (x.15*inv(x.10))
+        z     = x.9^x.15
+    
+     8. alpha = x.9^x.10
+        y     = (x.15*inv((x.10*x.16)))
+        z     = x.9^(x.15*inv(x.16))
+    
+     9. alpha = x.9^inv(x.10)
+        y     = x.10
+        z     = x.9
+    
+    10. alpha = x.9^inv(x.10)
+        y     = inv(x.15)
+        z     = x.9^inv((x.10*x.15))
+    
+    11. alpha = x.9^inv(x.10)
+        y     = (x.10*x.15)
+        z     = x.9^x.15
+    
+    12. alpha = x.9^inv(x.10)
+        y     = (x.15*inv(x.16))
+        z     = x.9^(x.15*inv((x.10*x.16)))
+    
+    13. alpha = x.9^inv((x.10*x.11))
+        y     = x.10
+        z     = x.9^inv(x.11)
+    
+    14. alpha = x.9^inv((x.10*x.11))
+        y     = (x.10*x.16)
+        z     = x.9^(x.16*inv(x.11))
+    
+    15. alpha = x.9^inv((x.10*x.11))
+        y     = (x.10*x.16*inv(x.17))
+        z     = x.9^(x.16*inv((x.11*x.17)))
+    
+    16. alpha = x.9^inv((x.10*x.11))
+        y     = (x.10*inv(x.16))
+        z     = x.9^inv((x.11*x.16))
+    
+    17. alpha = x.9^(x.10*x.11)
+        y     = inv(x.10)
+        z     = x.9^x.11
+    
+    18. alpha = x.9^(x.10*x.11)
+        y     = inv((x.10*x.16))
+        z     = x.9^(x.11*inv(x.16))
+    
+    19. alpha = x.9^(x.10*x.11)
+        y     = (x.16*inv(x.10))
+        z     = x.9^(x.11*x.16)
+    
+    20. alpha = x.9^(x.10*x.11)
+        y     = (x.16*inv((x.10*x.17)))
+        z     = x.9^(x.11*x.16*inv(x.17))
+    
+    21. alpha = x.9^(x.10*x.11*inv(x.12))
+        y     = inv((x.10*x.17))
+        z     = x.9^(x.11*inv((x.12*x.17)))
+    
+    22. alpha = x.9^(x.10*x.11*inv(x.12))
+        y     = (x.12*x.17*inv(x.10))
+        z     = x.9^(x.11*x.17)
+    
+    23. alpha = x.9^(x.10*x.11*inv(x.12))
+        y     = (x.12*x.17*inv((x.10*x.18)))
+        z     = x.9^(x.11*x.17*inv(x.18))
+    
+    24. alpha = x.9^(x.10*x.11*inv(x.12))
+        y     = (x.12*inv(x.10))
+        z     = x.9^x.11
+    
+    25. alpha = x.9^(x.10*x.11*inv(x.12))
+        y     = (x.12*inv((x.10*x.17)))
+        z     = x.9^(x.11*inv(x.17))
+    
+    26. alpha = x.9^(x.10*x.11*inv(x.12))
+        y     = (x.17*inv((x.10*x.18)))
+        z     = x.9^(x.11*x.17*inv((x.12*x.18)))
+    
+    27. alpha = x.9^(x.10*x.11*inv((x.12*x.13)))
+        y     = (x.12*x.18*inv(x.10))
+        z     = x.9^(x.11*x.18*inv(x.13))
+    
+    28. alpha = x.9^(x.10*x.11*inv((x.12*x.13)))
+        y     = (x.12*x.18*inv((x.10*x.19)))
+        z     = x.9^(x.11*x.18*inv((x.13*x.19)))
+    
+    29. alpha = x.9^(x.10*x.11*inv((x.12*x.13)))
+        y     = (x.12*inv(x.10))
+        z     = x.9^(x.11*inv(x.13))
+    
+    30. alpha = x.9^(x.10*x.11*inv((x.12*x.13)))
+        y     = (x.12*inv((x.10*x.18)))
+        z     = x.9^(x.11*inv((x.13*x.18)))
+    
+    31. alpha = x.9^(x.10*inv(x.11))
+        y     = x.11
+        z     = x.9^x.10
+    
+    32. alpha = x.9^(x.10*inv(x.11))
+        y     = inv(x.16)
+        z     = x.9^(x.10*inv((x.11*x.16)))
+    
+    33. alpha = x.9^(x.10*inv(x.11))
+        y     = inv((x.10*x.16))
+        z     = x.9^inv((x.11*x.16))
+    
+    34. alpha = x.9^(x.10*inv(x.11))
+        y     = (x.11*x.16)
+        z     = x.9^(x.10*x.16)
+    
+    35. alpha = x.9^(x.10*inv(x.11))
+        y     = (x.11*x.16*inv(x.10))
+        z     = x.9^x.16
+    
+    36. alpha = x.9^(x.10*inv(x.11))
+        y     = (x.11*x.16*inv((x.10*x.17)))
+        z     = x.9^(x.16*inv(x.17))
+    
+    37. alpha = x.9^(x.10*inv(x.11))
+        y     = (x.11*inv(x.10))
+        z     = x.9
+    
+    38. alpha = x.9^(x.10*inv(x.11))
+        y     = (x.11*inv((x.10*x.16)))
+        z     = x.9^inv(x.16)
+    
+    39. alpha = x.9^(x.10*inv(x.11))
+        y     = (x.16*inv(x.17))
+        z     = x.9^(x.10*x.16*inv((x.11*x.17)))
+    
+    40. alpha = x.9^(x.10*inv(x.11))
+        y     = (x.16*inv((x.10*x.17)))
+        z     = x.9^(x.16*inv((x.11*x.17)))
+    
+    41. alpha = x.9^(x.10*inv((x.11*x.12)))
+        y     = x.11
+        z     = x.9^(x.10*inv(x.12))
+    
+    42. alpha = x.9^(x.10*inv((x.11*x.12)))
+        y     = (x.11*x.17)
+        z     = x.9^(x.10*x.17*inv(x.12))
+    
+    43. alpha = x.9^(x.10*inv((x.11*x.12)))
+        y     = (x.11*x.17*inv(x.10))
+        z     = x.9^(x.17*inv(x.12))
+    
+    44. alpha = x.9^(x.10*inv((x.11*x.12)))
+        y     = (x.11*x.17*inv(x.18))
+        z     = x.9^(x.10*x.17*inv((x.12*x.18)))
+    
+    45. alpha = x.9^(x.10*inv((x.11*x.12)))
+        y     = (x.11*x.17*inv((x.10*x.18)))
+        z     = x.9^(x.17*inv((x.12*x.18)))
+    
+    46. alpha = x.9^(x.10*inv((x.11*x.12)))
+        y     = (x.11*inv(x.10))
+        z     = x.9^inv(x.12)
+    
+    47. alpha = x.9^(x.10*inv((x.11*x.12)))
+        y     = (x.11*inv(x.17))
+        z     = x.9^(x.10*inv((x.12*x.17)))
+    
+    48. alpha = x.9^(x.10*inv((x.11*x.12)))
+        y     = (x.11*inv((x.10*x.17)))
+        z     = x.9^inv((x.12*x.17))
+  */
+
+rule (modulo E) dh_4_B:
+   [ St_dh_3_B( B, key, sec1, sec2, y, sk(k_B), pk(k_B), alpha ), Fr( ~m ) ]
+  --[ Secret( ~m ) ]->
+   [
+   Out( senc(~m, key) ),
+   St_dh_4_B( B, key, ~m, sec1, sec2, y, sk(k_B), pk(k_B), alpha )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+lemma Secrecy:
+  all-traces "¬(∃ m #t1 #t2. (Secret( m ) @ #t1) ∧ (K( m ) @ #t2))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ m #t1 #t2. (Secret( m ) @ #t1) ∧ (K( m ) @ #t2)"
+*/
+simplify
+solve( St_dh_3_B( B, key, sec1, sec2, y, sk(k_B), pk(k_B), alpha
+       ) ▶₀ #t1 )
+  case dh_3_B
+  solve( !KU( ~m ) @ #vk )
+    case dh_4_B
+    solve( !KU( ~sec2 ) @ #vk.2 )
+      case dh_3_A
+      solve( splitEqs(1) )
+        case split_case_1
+        solve( !KU( senc(key, alpha^~y) ) @ #vk.3 )
+          case c_senc
+          solve( !KU( alpha^~y ) @ #vk.9 )
+            case dh_2_B
+            solve( splitEqs(3) )
+              case split_case_2
+              solve( !KU( ~sec1 ) @ #vk.6 )
+                case dh_1_A
+                SOLVED // trace found
+              qed
+            qed
+          qed
+        qed
+      qed
+    qed
+  qed
+qed
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*
+WARNING: the following wellformedness checks failed!
+
+Message Derivation Checks
+=========================
+
+  The variables of the follwing rule(s) are not derivable from their premises, you may be performing unintended pattern matching.
+
+Rule Init_Knowledge: 
+Failed to derive Variable(s): k_A, k_B
+
+Rule dh_1_A: 
+Failed to derive Variable(s): k_A
+
+Rule dh_2_A: 
+Failed to derive Variable(s): k_A
+
+Rule dh_3_A: 
+Failed to derive Variable(s): k_A
+
+Rule dh_4_A: 
+Failed to derive Variable(s): k_A
+
+Rule dh_1_B: 
+Failed to derive Variable(s): k_B
+
+Rule dh_2_B: 
+Failed to derive Variable(s): k_B
+
+Rule dh_3_B: 
+Failed to derive Variable(s): k_B
+
+Rule dh_4_B: 
+Failed to derive Variable(s): k_B
+*/
+
+/*
+Generated from:
+Tamarin version 1.9.0
+Maude version 2.7.1
+Git revision: UNKNOWN, branch: UNKNOWN
+Compiled at: 2024-07-24 13:23:13.794968 UTC
+*/
+
+end

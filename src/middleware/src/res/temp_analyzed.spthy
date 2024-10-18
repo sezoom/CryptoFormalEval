@@ -1,0 +1,363 @@
+theory 2 begin
+
+// Function signature and definition of the equational theory E
+
+builtins: diffie-hellman
+functions: fst/1, pair/2, sdec/2, senc/2, snd/1
+equations:
+    fst(<x.1, x.2>) = x.1,
+    sdec(senc(x.1, x.2), x.2) = x.1,
+    snd(<x.1, x.2>) = x.2
+
+
+
+heuristic: o "manualguide.py"
+
+
+
+
+
+rule (modulo E) setup:
+   [ ] --> [ Out( $g ), Out( $A ), Out( $B ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Init_A:
+   [ Fr( ~ka ) ]
+  --[ Create( $A, ~ka ), Role( 'A' ) ]->
+   [ St_A_1( $A, ~ka ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Init_B:
+   [ Fr( ~kb ) ]
+  --[ Create( $B, ~kb ), Role( 'B' ) ]->
+   [ St_B_1( $B, ~kb ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) A_1_send:
+   [ St_A_1( $A, ~ka ), Fr( ~N1 ) ]
+  -->
+   [ Out( <$g^~ka, ~N1> ), St_A_2( $A, ~ka, ~N1 ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) B_1_receive:
+   [ In( <alpha, ~N1> ), St_B_1( $B, ~kb ) ]
+  -->
+   [ St_B_2( $B, ~kb, alpha, ~N1 ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) B_2_send:
+   [ St_B_2( $B, ~kb, alpha, ~N1 ), Fr( ~N2 ) ]
+  --[
+  Running( $B, $A, <'A', 'B', $g^~kb, senc(~N1, alpha^~kb), ~N2> ),
+  Secret( ~kb )
+  ]->
+   [
+   St_B_3( $B, ~kb, alpha, ~N1, ~N2 ),
+   Out( <$g^~kb, senc(~N1, alpha^~kb), ~N2> )
+   ]
+
+  /*
+  rule (modulo AC) B_2_send:
+     [ St_B_2( $B, ~kb, alpha, ~N1 ), Fr( ~N2 ) ]
+    --[
+    Running( $B, $A, <'A', 'B', $g^~kb, senc(~N1, z), ~N2> ), Secret( ~kb )
+    ]->
+     [ St_B_3( $B, ~kb, alpha, ~N1, ~N2 ), Out( <$g^~kb, senc(~N1, z), ~N2> )
+     ]
+    variants (modulo AC)
+    1. ~kb   = ~kb.18
+       alpha = alpha.19
+       z     = alpha.19^~kb.18
+    
+    2. ~kb   = ~kb.20
+       alpha = z.23^inv(~kb.20)
+       z     = z.23
+    
+    3. ~kb   = ~kb.82
+       alpha = x.156^x.157
+       z     = x.156^(~kb.82*x.157)
+    
+    4. ~kb   = ~kb.83
+       alpha = x.158^inv((~kb.83*x.159))
+       z     = x.158^inv(x.159)
+    
+    5. ~kb   = ~kb.83
+       alpha = x.158^(x.159*inv(~kb.83))
+       z     = x.158^x.159
+    
+    6. ~kb   = ~kb.84
+       alpha = x.159^(x.160*inv((~kb.84*x.161)))
+       z     = x.159^(x.160*inv(x.161))
+    
+    7. alpha = DH_neutral
+       z     = DH_neutral
+  */
+
+restriction Restr_A_2_receive_1:
+  "∀ x #NOW x.1. (Restr_A_2_receive_1( x, x.1 ) @ #NOW) ⇒ (x = x.1)"
+  // safety formula
+
+rule (modulo E) A_2_receive:
+   [ In( <beta, gamma, ~N2> ), St_A_2( $A, ~ka, ~N1 ) ]
+  --[ Restr_A_2_receive_1( sdec(gamma, beta^~ka), ~N1 ) ]->
+   [ St_A_3( $A, ~ka, ~N1, beta, gamma, ~N2 ) ]
+
+  /*
+  rule (modulo AC) A_2_receive:
+     [ In( <beta, gamma, ~N2> ), St_A_2( $A, ~ka, ~N1 ) ]
+    --[ Restr_A_2_receive_1( z, ~N1 ) ]->
+     [ St_A_3( $A, ~ka, ~N1, beta, gamma, ~N2 ) ]
+    variants (modulo AC)
+     1. ~ka   = ~ka.8
+        beta  = beta.8
+        gamma = gamma.8
+        z     = sdec(gamma.8, beta.8^~ka.8)
+    
+     2. ~ka   = ~x.8
+        beta  = x.9
+        gamma = senc(x.10, x.9^~x.8)
+        z     = x.10
+    
+     3. ~ka   = ~x.8
+        beta  = x.9^x.10
+        gamma = senc(x.11, x.9^(~x.8*x.10))
+        z     = x.11
+    
+     4. ~ka   = ~x.8
+        beta  = x.9^inv(~x.8)
+        gamma = gamma.10
+        z     = sdec(gamma.10, x.9)
+    
+     5. ~ka   = ~x.8
+        beta  = x.9^inv(~x.8)
+        gamma = senc(x.10, x.9)
+        z     = x.10
+    
+     6. ~ka   = ~x.8
+        beta  = x.9^inv((~x.8*x.10))
+        gamma = gamma.11
+        z     = sdec(gamma.11, x.9^inv(x.10))
+    
+     7. ~ka   = ~x.8
+        beta  = x.9^inv((~x.8*x.10))
+        gamma = senc(x.11, x.9^inv(x.10))
+        z     = x.11
+    
+     8. ~ka   = ~x.8
+        beta  = x.9^(x.10*inv(~x.8))
+        gamma = gamma.11
+        z     = sdec(gamma.11, x.9^x.10)
+    
+     9. ~ka   = ~x.8
+        beta  = x.9^(x.10*inv(~x.8))
+        gamma = senc(x.11, x.9^x.10)
+        z     = x.11
+    
+    10. ~ka   = ~x.8
+        beta  = x.9^(x.10*inv((~x.8*x.11)))
+        gamma = gamma.12
+        z     = sdec(gamma.12, x.9^(x.10*inv(x.11)))
+    
+    11. ~ka   = ~x.8
+        beta  = x.9^(x.10*inv((~x.8*x.11)))
+        gamma = senc(x.12, x.9^(x.10*inv(x.11)))
+        z     = x.12
+    
+    12. ~ka   = ~ka.10
+        beta  = x.8^x.9
+        gamma = gamma.10
+        z     = sdec(gamma.10, x.8^(x.9*~ka.10))
+    
+    13. beta  = DH_neutral
+        gamma = gamma.8
+        z     = sdec(gamma.8, DH_neutral)
+    
+    14. beta  = DH_neutral
+        gamma = senc(x.8, DH_neutral)
+        z     = x.8
+  */
+
+rule (modulo E) A_3_send:
+   [ St_A_3( $A, ~ka, ~N1, beta, gamma, ~N2 ) ]
+  --[ Commit( $A, $B, <'A', 'B', gamma> ) ]->
+   [ Out( senc(~N2, beta^~ka) ) ]
+
+  /*
+  rule (modulo AC) A_3_send:
+     [ St_A_3( $A, ~ka, ~N1, beta, gamma, ~N2 ) ]
+    --[ Commit( $A, $B, <'A', 'B', gamma> ) ]->
+     [ Out( senc(~N2, z) ) ]
+    variants (modulo AC)
+    1. ~ka   = ~ka.11
+       beta  = beta.12
+       z     = beta.12^~ka.11
+    
+    2. ~ka   = ~ka.13
+       beta  = z.16^inv(~ka.13)
+       z     = z.16
+    
+    3. ~ka   = ~ka.17
+       beta  = x.27^x.28
+       z     = x.27^(~ka.17*x.28)
+    
+    4. ~ka   = ~ka.18
+       beta  = x.29^inv((~ka.18*x.30))
+       z     = x.29^inv(x.30)
+    
+    5. ~ka   = ~ka.18
+       beta  = x.29^(x.30*inv(~ka.18))
+       z     = x.29^x.30
+    
+    6. ~ka   = ~ka.19
+       beta  = x.30^(x.31*inv((~ka.19*x.32)))
+       z     = x.30^(x.31*inv(x.32))
+    
+    7. beta  = DH_neutral
+       z     = DH_neutral
+  */
+
+restriction Restr_B_3_receive_1:
+  "∀ x #NOW x.1. (Restr_B_3_receive_1( x, x.1 ) @ #NOW) ⇒ (x = x.1)"
+  // safety formula
+
+rule (modulo E) B_3_receive:
+   [ St_B_3( $B, ~kb, alpha, ~N1, ~N2 ), In( delta ) ]
+  --[
+  Receives( $A, $B, <'A', 'B', senc(~N2, delta)> ),
+  Restr_B_3_receive_1( sdec(delta, alpha^~kb), ~N2 )
+  ]->
+   [ ]
+
+  /*
+  rule (modulo AC) B_3_receive:
+     [ St_B_3( $B, ~kb, alpha, ~N1, ~N2 ), In( delta ) ]
+    --[
+    Receives( $A, $B, <'A', 'B', senc(~N2, delta)> ),
+    Restr_B_3_receive_1( z, ~N2 )
+    ]->
+     [ ]
+    variants (modulo AC)
+     1. ~kb   = ~kb.14
+        alpha = alpha.15
+        delta = delta.16
+        z     = sdec(delta.16, alpha.15^~kb.14)
+    
+     2. ~kb   = ~kb.17
+        alpha = alpha.18
+        delta = senc(z.22, alpha.18^~kb.17)
+        z     = z.22
+    
+     3. ~kb   = ~kb.19
+        alpha = x.31^x.32
+        delta = delta.21
+        z     = sdec(delta.21, x.31^(~kb.19*x.32))
+    
+     4. ~kb   = ~kb.19
+        alpha = x.32^inv(~kb.19)
+        delta = delta.21
+        z     = sdec(delta.21, x.32)
+    
+     5. ~kb   = ~kb.19
+        alpha = x.32^inv(~kb.19)
+        delta = senc(z.24, x.32)
+        z     = z.24
+    
+     6. ~kb   = ~kb.20
+        alpha = x.33^x.34
+        delta = senc(z.25, x.33^(~kb.20*x.34))
+        z     = z.25
+    
+     7. ~kb   = ~kb.20
+        alpha = x.33^inv((~kb.20*x.34))
+        delta = delta.22
+        z     = sdec(delta.22, x.33^inv(x.34))
+    
+     8. ~kb   = ~kb.20
+        alpha = x.33^inv((~kb.20*x.34))
+        delta = senc(z.25, x.33^inv(x.34))
+        z     = z.25
+    
+     9. ~kb   = ~kb.20
+        alpha = x.33^(x.34*inv(~kb.20))
+        delta = delta.22
+        z     = sdec(delta.22, x.33^x.34)
+    
+    10. ~kb   = ~kb.20
+        alpha = x.33^(x.34*inv(~kb.20))
+        delta = senc(z.25, x.33^x.34)
+        z     = z.25
+    
+    11. ~kb   = ~kb.21
+        alpha = x.34^(x.35*inv((~kb.21*x.36)))
+        delta = delta.23
+        z     = sdec(delta.23, x.34^(x.35*inv(x.36)))
+    
+    12. ~kb   = ~kb.21
+        alpha = x.34^(x.35*inv((~kb.21*x.36)))
+        delta = senc(z.26, x.34^(x.35*inv(x.36)))
+        z     = z.26
+    
+    13. alpha = DH_neutral
+        delta = delta.12
+        z     = sdec(delta.12, DH_neutral)
+    
+    14. alpha = DH_neutral
+        delta = senc(z.12, DH_neutral)
+        z     = z.12
+  */
+
+lemma aliveness:
+  all-traces
+  "∀ a b t #i. (Commit( a, b, t ) @ #i) ⇒ (∃ id #j. Create( b, id ) @ #j)"
+/*
+guarded formula characterizing all counter-examples:
+"∃ a b t #i.
+  (Commit( a, b, t ) @ #i) ∧ ∀ id #j. (Create( b, id ) @ #j) ⇒ ⊥"
+*/
+simplify
+solve( splitEqs(0) )
+  case split_case_1
+  solve( St_A_3( $A, ~ka, ~N1, beta, gamma, ~N2 ) ▶₀ #i )
+    case A_2_receive
+    solve( !KU( senc(~N1, beta^~ka) ) @ #vk.3 )
+      case c_senc
+      solve( !KU( ~N2 ) @ #vk.4 )
+        case A_1_send
+        solve( !KU( ~N1 ) @ #vk.5 )
+          case A_1_send
+          solve( !KU( beta^~ka ) @ #vk.6 )
+            case A_1_send
+            SOLVED // trace found
+          qed
+        qed
+      qed
+    qed
+  qed
+qed
+
+
+
+
+
+
+
+
+
+
+
+/* All wellformedness checks were successful. */
+
+/*
+Generated from:
+Tamarin version 1.9.0
+Maude version 2.7.1
+Git revision: UNKNOWN, branch: UNKNOWN
+Compiled at: 2024-07-24 13:23:13.794968 UTC
+*/
+
+end

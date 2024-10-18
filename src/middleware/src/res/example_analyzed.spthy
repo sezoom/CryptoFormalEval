@@ -1,0 +1,205 @@
+theory three begin
+
+// Function signature and definition of the equational theory E
+
+functions: adec/2, aenc/2, fst/1, pair/2, pk/1, sdec/2, senc/2, sk/1,
+           snd/1
+equations:
+    adec(aenc(x.1, pk(x.2)), sk(x.2)) = x.1,
+    adec(aenc(x.1, sk(x.2)), pk(x.2)) = x.1,
+    fst(<x.1, x.2>) = x.1,
+    sdec(senc(x.1, x.2), x.2) = x.1,
+    snd(<x.1, x.2>) = x.2
+
+
+
+
+
+
+
+rule (modulo E) Asymmetric_key_setup:
+   [ Fr( ~f ) ] --> [ !Sk( $A, sk(~f) ), !Pk( $A, pk(~f) ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Publish_public_keys:
+   [ !Pk( A, pkA ) ] --> [ Out( pkA ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Symmetric_key_setup:
+   [ Fr( ~symK ) ] --> [ !Key( $A, $B, ~symK ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Init_Knowledge:
+   [
+   !Pk( $A, pk(k_A) ), !Pk( $B, pk(k_B) ), !Sk( $A, sk(k_A) ),
+   !Sk( $B, sk(k_B) ), Fr( ~Ks ), Fr( ~M )
+   ]
+  -->
+   [
+   St_init_A( $A, ~Ks, ~M, sk(k_A), pk(k_A) ),
+   St_init_B( $B, ~Ks, sk(k_B), pk(k_B) )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) m1_A:
+   [ St_init_A( A, Ks, M, sk(k_A), pk(k_A) ), Fr( ~Na ) ]
+  -->
+   [ Out( ~Na ), St_m1_A( A, Ks, M, ~Na, sk(k_A), pk(k_A) ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) m2_A:
+   [ St_m1_A( A, Ks, M, Na, sk(k_A), pk(k_A) ), In( senc(Na, Ks) ) ]
+  -->
+   [ St_m2_A( A, Ks, M, Na, sk(k_A), pk(k_A) ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) m3_A:
+   [ St_m2_A( A, Ks, M, Na, sk(k_A), pk(k_A) ) ]
+  --[ FreshTerm( 'A', M ) ]->
+   [ Out( senc(M, Ks) ), St_m3_A( A, Ks, M, Na, sk(k_A), pk(k_A) ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) m1_B:
+   [ St_init_B( B, Ks, sk(k_B), pk(k_B) ), In( Na ) ]
+  -->
+   [ St_m1_B( B, Ks, Na, sk(k_B), pk(k_B) ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) m2_B:
+   [ St_m1_B( B, Ks, Na, sk(k_B), pk(k_B) ) ]
+  -->
+   [ Out( senc(Na, Ks) ), St_m2_B( B, Ks, Na, sk(k_B), pk(k_B) ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) m3_B:
+   [ St_m2_B( B, Ks, Na, sk(k_B), pk(k_B) ), In( senc(M, Ks) ) ]
+  --[ Recieve( senc(M, Ks) ), FreshTerm( 'B', M ) ]->
+   [ St_m3_B( B, Ks, M, Na, sk(k_B), pk(k_B) ) ]
+
+  /* has exactly the trivial AC variant */
+
+lemma execution:
+  exists-trace "∃ m #i. Recieve( m ) @ #i"
+/*
+guarded formula characterizing all satisfying traces:
+"∃ m #i. (Recieve( m ) @ #i)"
+*/
+simplify
+solve( St_m2_B( B, Ks, Na, sk(k_B), pk(k_B) ) ▶₀ #i )
+  case m2_B
+  solve( !KU( senc(M, ~Ks) ) @ #vk )
+    case m2_B
+    SOLVED // trace found
+  qed
+qed
+
+lemma Freshness:
+  all-traces
+  "∀ a b k #i.
+    (K( <a, b, k> ) @ #i) ⇒ (¬(∃ #j. (K( k ) @ #j) ∧ (#j < #i)))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ a b k #i. (K( <a, b, k> ) @ #i) ∧ ∃ #j. (K( k ) @ #j) ∧ #j < #i"
+*/
+simplify
+SOLVED // trace found
+
+lemma myFresh:
+  all-traces
+  "∀ part mess #t1.
+    (FreshTerm( part, mess ) @ #t1) ⇒
+    (¬(∃ #t2. (FreshTerm( part, mess ) @ #t2) ∧ (#t1 < #t2)))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ part mess #t1.
+  (FreshTerm( part, mess ) @ #t1)
+ ∧
+  ∃ #t2. (FreshTerm( part, mess ) @ #t2) ∧ #t1 < #t2"
+*/
+simplify
+solve( FreshTerm( part, mess ) @ #t1 )
+  case m3_B
+  solve( St_m2_B( B, Ks, Na, sk(k_B), pk(k_B) ) ▶₀ #t1 )
+    case m2_B
+    solve( FreshTerm( 'B', mess ) @ #t2 )
+      case m3_B
+      solve( St_m2_B( B.1, Ks.1, Na.1, sk(k_B), pk(k_B) ) ▶₀ #t2 )
+        case m2_B
+        solve( !KU( senc(mess, ~Ks) ) @ #vk )
+          case m2_B
+          solve( !KU( senc(Na, ~Ks.1) ) @ #vk.2 )
+            case m2_B
+            SOLVED // trace found
+          qed
+        qed
+      qed
+    qed
+  qed
+qed
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*
+WARNING: the following wellformedness checks failed!
+
+Message Derivation Checks
+=========================
+
+  The variables of the follwing rule(s) are not derivable from their premises, you may be performing unintended pattern matching.
+
+Rule Init_Knowledge: 
+Failed to derive Variable(s): k_A, k_B
+
+Rule m1_A: 
+Failed to derive Variable(s): k_A
+
+Rule m2_A: 
+Failed to derive Variable(s): k_A
+
+Rule m3_A: 
+Failed to derive Variable(s): k_A
+
+Rule m1_B: 
+Failed to derive Variable(s): k_B
+
+Rule m2_B: 
+Failed to derive Variable(s): k_B
+
+Rule m3_B: 
+Failed to derive Variable(s): k_B
+*/
+
+/*
+Generated from:
+Tamarin version 1.9.0
+Maude version 2.7.1
+Git revision: UNKNOWN, branch: UNKNOWN
+Compiled at: 2024-07-24 13:23:13.794968 UTC
+*/
+
+end
