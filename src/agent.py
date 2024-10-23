@@ -22,8 +22,6 @@ if env_path:
 else:
     print("PATH not found in .env")
 
-
-
 # Update model config to try a new core LLM
 MODEL_CONFIGS = {
     "gpt-4-turbo": {"max_tokens": 128000, "up_training_date": "Dec 2023"},
@@ -531,16 +529,9 @@ def load_dataset_input(input_id: int, path_input= os.path.join(os.getcwd(), 'dat
 
 
 # Example usage
-if __name__ == "__main__":
+# if __name__ == "__main__":
+#
+#         agent = Agent(max_api_calls=2, initial_task_number=1, test_number=3 , maximum_number_of_repetition=3, model_name='gpt-4o', user_interactive=False)
+#         outputs, run_id_dir = agent.interact()
+#         print("Completed!")
 
-        agent = Agent(max_api_calls=2, initial_task_number=1, test_number=3 , maximum_number_of_repetition=3, model_name='gpt-4o', user_interactive=False)
-        outputs, run_id_dir = agent.interact()
-        print("Completed!")
-
-    # 'gpt-4-turbo'
-    # 'gpt-4o'
-    # 'gpt-3.5-turbo-0125'
-    # claude-3-5-sonnet-20240620
-    # claude-3-opus-20240229"
-    # claude-3-haiku-20240307
-    # o1-preview-2024-09-12

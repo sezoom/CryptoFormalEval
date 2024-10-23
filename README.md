@@ -1,5 +1,12 @@
-# CryptoFormalEval
-Evaluation + Agent
+# CryptoFormalEval: Automated Benchmark for LLM Vulnerability Detection in Cryptographic Protocols
+
+## Introduction
+
+Cryptographic protocols are essential to the security of modern digital infrastructures, but they are frequently deployed without undergoing formal verification, exposing systems to potential hidden vulnerabilities. Although formal verification methods are rigorous and effective, they are often complex and time-intensive, making them challenging to apply consistently in real-world scenarios. This project addresses this gap by introducing an automated benchmark designed to evaluate the capability of Large Language Models (LLMs) in detecting vulnerabilities in cryptographic protocols.
+We present a validated dataset of novel flawed communication protocols, accompanied by an automated validation method for results. In our research, we leverage state-of-the-art prompting and scaffolding techniques for LLMs, combined with Tamarin—a powerful symbolic reasoning tool—to enhance protocol analysis. This integration bridges natural language processing with formal verification, leading to a more efficient and comprehensive assessment of protocol security. Our early results demonstrate the potential of LLMs, augmented by symbolic reasoning, to contribute to defensive cybersecurity applications.
+
+## TL;DR
+We introduce a benchmark for testing how well LLMs can find vulnerabilities in cryptographic protocols. By combining LLMs with symbolic reasoning tools like Tamarin, we aim to improve the efficiency and thoroughness of protocol analysis, paving the way for future AI-powered cybersecurity defenses.
 
 ## Table of Contents
 
@@ -14,7 +21,7 @@ Evaluation + Agent
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/
+   git clone git@github.com:Cristian-Curaba/CryptoFormalEval.git
    ```
 
 2. Create a virtual environment:
@@ -40,45 +47,24 @@ Evaluation + Agent
    ```
 
 5. Install Tamarin:
-    Follow instructions in
+    Follow instructions in [Instructions_for_Tamarin_installation.md](Instructions_for_Tamarin_installation.md))
 
 6. Compile ./src/formalizer
-   Follow instructions in ./src/formalizer/README
+   Follow instructions in [src/formalizer/README](src/formalizer/README)
 
-7. Make sure that both the Tamarin prover and the formalizer works correctly. You can test them using the following commands:
-    ```bash
-    ```
-    and check if the file outputs are produced.
 
-8. Modify the `.env.example` file by adding API keys and the `$PATH`. You can print using 
-    ```bash
-   echo $PATH
-    ```
-   and then copy it in the  `.env` file.
+7. Modify the `.env.example` file by adding API keys and the `$PATH` global variable (to execute Tamarin).
+
 
 ## Usage
 
-Explain how to run and use the project, including examples if applicable.
-
-Example:
+Run the main file:
 ```bash
-python main.py
+python src/main.py
 ```
 
-Or if you're using a specific framework:
-```bash
-flask run
-```
-
-### Additional Commands
-
-If there are any other commands or options, list them here.
-
-## Features
-
-- Feature 1
-- Feature 2
-- Feature 3
+To explore the produced outputs, you can check the [src/agent_execution](src/agent_execution) folder. 
+To further analysis, run the [src/main_print_interactions.py](src/main_print_interactions.py) file (change the `id_run`) and inspect `src/history_run` folder.
 
 ## Contributing
 
@@ -90,10 +76,17 @@ Contributions are welcome! Please follow these steps to contribute:
 4. Push to the branch (`git push origin feature-branch`).
 5. Create a pull request.
 
+## Inspecting Dataset and Results
+
+In order to preserve the dataset from LLM memorization, we release it privately by sharing the password to decrypt the [dataset.zip](dataset.zip) file under [LICENSE](LICENSE).
+
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the GNU GENERAL PUBLIC License - see the [LICENSE](LICENSE) file for details.
 
 ## Acknowledgements
 
+This research was made possible through the generous support of [Apart Research](https://www.apartresearch.com/), which provided both expert research guidelines and access to APIs.
+Their resources and guidance have been instrumental in shaping the direction and success of this work.
+We also extend our gratitude to our main research advisor, Natalia  for their expertise, mentorship, and insightful feedback throughout the project.
 
