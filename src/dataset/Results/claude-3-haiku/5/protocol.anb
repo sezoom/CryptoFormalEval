@@ -1,0 +1,10 @@
+Protocol five:
+
+Knowledge:
+    A : A, B, k(A,B);
+    B : A, B, k(A,B);
+
+Actions:
+    [msg1] A -> B : senc{ A . B . ('freshly_generated_term') . h(('freshly_generated_term')) }k(A,B);
+    [msg2] B -> A : senc{ ('freshly_generated_term') }k(A,B);
+    [msg3] A -> B : senc{ h(('freshly_generated_term')) }k(A,B);

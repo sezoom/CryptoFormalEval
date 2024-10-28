@@ -1,0 +1,8 @@
+Types:
+    A : A;
+    B : B;
+    E : Attacker;
+
+Actions:
+    A -> E : aenc{pkA, pkB, m, h(n1)}skA;
+    E -> B : aenc{pkA, pkB, m, h(n1)}skA;

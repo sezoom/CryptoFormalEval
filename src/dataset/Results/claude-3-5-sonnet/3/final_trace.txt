@@ -1,0 +1,8 @@
+Types:
+    A : A;
+    B : B;
+    E : Attacker;
+
+Actions:
+    A -> E : i.1 . A . B . senc{n1 . i.1 . A . B}k(A,S);
+    E -> A : i.1 . senc{n1 . i.1 . A . B}k(A,S);

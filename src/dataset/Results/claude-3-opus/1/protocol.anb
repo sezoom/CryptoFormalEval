@@ -1,0 +1,10 @@
+Protocol One:
+Knowledge: 
+    A : A, B, k(A,B), M;
+    B : A, B, k(A,B);
+
+Actions: 
+    [msg1] A -> B (N) : N;
+    [msg2] B -> A : senc{N}k(A,B);  
+    [msg3] A -> B : senc{M}k(A,B);
+end

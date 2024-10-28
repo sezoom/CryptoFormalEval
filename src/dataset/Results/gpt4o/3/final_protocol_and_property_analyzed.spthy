@@ -1,0 +1,181 @@
+theory Protocol3 begin
+
+// Function signature and definition of the equational theory E
+
+functions: adec/2, aenc/2, fst/1, pair/2, pk/1, sdec/2, senc/2, sk/1,
+           snd/1
+equations:
+    adec(aenc(x.1, pk(x.2)), x.2) = x.1,
+    adec(aenc(x.1, pk(x.2)), sk(x.2)) = x.1,
+    adec(aenc(x.1, sk(x.2)), pk(x.2)) = x.1,
+    fst(<x.1, x.2>) = x.1,
+    sdec(senc(x.1, x.2), x.2) = x.1,
+    snd(<x.1, x.2>) = x.2
+
+
+
+
+
+
+
+
+
+rule (modulo E) Asymmetric_key_setup:
+   [ Fr( ~f ) ] --> [ !Sk( $A, sk(~f) ), !Pk( $A, pk(~f) ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Publish_public_keys:
+   [ !Pk( A, pkA ) ] --> [ Out( pkA ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Symmetric_key_setup:
+   [ Fr( ~symK ) ] --> [ !Key( $A, $B, ~symK ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Init_Knowledge:
+   [
+   !Pk( $A, pk(k_A) ), !Pk( $B, pk(k_B) ), !Sk( $A, sk(k_A) ),
+   !Sk( $B, sk(k_B) ), Fr( ~M )
+   ]
+  -->
+   [
+   St_init_A( $A, $B, ~M, sk(k_A), pk(k_A), pk(k_B) ),
+   St_init_B( $A, $B, sk(k_B), pk(k_B) )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) msg1_A:
+   [ St_init_A( A, B, M, sk(k_A), pk(k_A), pk(k_B) ), Fr( ~Key ) ]
+  -->
+   [
+   Out( <A, senc(<A, M>, ~Key)> ),
+   St_msg1_A( A, B, ~Key, M, sk(k_A), pk(k_A), pk(k_B) )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) msg2_A:
+   [ St_msg1_A( A, B, Key, M, sk(k_A), pk(k_A), pk(k_B) ), In( N ) ]
+  -->
+   [ St_msg2_A( A, B, Key, M, N, sk(k_A), pk(k_A), pk(k_B) ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) msg3_A:
+   [ St_msg2_A( A, B, Key, M, N, sk(k_A), pk(k_A), pk(k_B) ) ]
+  -->
+   [
+   Out( aenc(<N, Key>, pk(k_B)) ),
+   St_msg3_A( A, B, Key, M, N, sk(k_A), pk(k_A), pk(k_B) )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) msg1_B:
+   [ St_init_B( A, B, sk(k_B), pk(k_B) ), In( <A, alpha> ) ]
+  -->
+   [ St_msg1_B( A, B, sk(k_B), pk(k_B), alpha ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) msg2_B:
+   [ St_msg1_B( A, B, sk(k_B), pk(k_B), alpha ), Fr( ~N ) ]
+  -->
+   [ Out( ~N ), St_msg2_B( A, B, ~N, sk(k_B), pk(k_B), alpha ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) msg3_B:
+   [
+   St_msg2_B( A, B, N, sk(k_B), pk(k_B), senc(<A, M>, Key) ),
+   In( aenc(<N, Key>, pk(k_B)) )
+   ]
+  -->
+   [ St_msg3_B( A, B, Key, M, N, sk(k_B), pk(k_B) ) ]
+
+  /* has exactly the trivial AC variant */
+
+lemma message_authentication:
+  all-traces
+  "∀ b m #i.
+    (Authentic( b, m ) @ #i) ⇒ (∃ #j. (Send( b, m ) @ #j) ∧ (#j < #i))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ b m #i.
+  (Authentic( b, m ) @ #i) ∧ ∀ #j. (Send( b, m ) @ #j) ⇒ ¬(#j < #i)"
+*/
+simplify
+by solve( Authentic( b, m ) @ #i )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*
+WARNING: the following wellformedness checks failed!
+
+Inexistant lemma actions
+========================
+
+  lemma `message_authentication' references action 
+    fact "Authentic" (arity 2, Linear) 
+  but no rule has such an action.
+  
+  lemma `message_authentication' references action 
+    fact "Send" (arity 2, Linear) 
+  but no rule has such an action.
+
+Message Derivation Checks
+=========================
+
+  The variables of the follwing rule(s) are not derivable from their premises, you may be performing unintended pattern matching.
+
+Rule Init_Knowledge: 
+Failed to derive Variable(s): k_A, k_B
+
+Rule msg1_A: 
+Failed to derive Variable(s): k_A, k_B
+
+Rule msg2_A: 
+Failed to derive Variable(s): k_A, k_B
+
+Rule msg3_A: 
+Failed to derive Variable(s): k_A, k_B
+
+Rule msg1_B: 
+Failed to derive Variable(s): k_B
+
+Rule msg2_B: 
+Failed to derive Variable(s): k_B
+
+Rule msg3_B: 
+Failed to derive Variable(s): k_B
+*/
+
+/*
+Generated from:
+Tamarin version 1.9.0
+Maude version 2.7.1
+Git revision: ea7b979e436fc32f98369dd4e349fa0c6f1b1efd, branch: develop
+Compiled at: 2024-07-07 08:40:09.374915591 UTC
+*/
+
+end

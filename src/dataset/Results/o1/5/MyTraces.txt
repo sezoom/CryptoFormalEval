@@ -1,0 +1,33 @@
+Types:
+    Agent, Nonce
+
+Constants:
+    A, B
+
+Functions:
+    h/1
+
+Variables:
+    N1, N2, M1 : Nonce
+
+Knowledge:
+    Intruder knows Kab, M1 from previous session.
+
+Actions:
+
+// **Previous Session** (Legitimate Run)
+    A -> B : senc( (A, B, N1, h(N1)), Kab )
+    B -> A : senc( M1, Kab )
+    A -> B : senc( h(M1), Kab )
+
+// **Attack Session** (Aliveness Violation)
+    A -> E(B) : senc( (A, B, N2, h(N2)), Kab )
+    E -> A : senc( M1, Kab )        // E replays M1 from previous session
+    A -> B : senc( h(M1), Kab )
+
+Observations:
+- A generates fresh nonce N2 in the attack session.
+- Intruder E intercepts the message intended for B.
+- E replays old message senc(M1, Kab) to A.
+- A accepts M1, sends senc(h(M1), Kab) to B.
+- B is unaware of this session; no Create(B, id) event occurs.

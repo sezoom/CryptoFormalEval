@@ -1,0 +1,61 @@
+theory Protocol1
+begin
+
+builtins: symmetric-encryption
+
+// Rule for setting up the shared symmetric key
+rule Setup_SharedKey:
+    [ Fr(~k) ]
+    -->
+    [ !SharedKey($A, $B, ~k) ]
+
+// Rule for A initiating the protocol
+rule A_1:
+    [ !SharedKey($A, $B, k),
+      Fr(~N),
+      Fr(~M) ]
+    --[ FreshTerm($A, ~M), Send($A, ~N) ]->
+    [ Out(~N),
+      St_A_1($A, $B, k, ~N, ~M) ]
+
+// Rule for B responding to A's message
+rule B_1:
+    [ !SharedKey($A, $B, k),
+      In(N) ]
+    --[ Recv($B, N), Send($B, senc(N, k)) ]->
+    [ Out(senc(N, k)),
+      St_B_1($A, $B, k, N) ]
+
+// Rule for A sending the final message
+rule A_2:
+    [ St_A_1($A, $B, k, N, M),
+      In(senc(N, k)) ]
+    --[ Recv($A, senc(N, k)), Send($A, senc(M, k)) ]->
+    [ Out(senc(M, k)) ]
+
+// Rule for B receiving the final message
+rule B_2:
+    [ St_B_1($A, $B, k, N),
+      In(senc(M, k)) ]
+    --[ Recv($B, senc(M, k)) ]->
+    [ ]
+
+// Freshness lemma
+lemma freshness:
+    "not (Ex party mess #t1 #t2 . 
+        FreshTerm(party, mess)@#t1 
+        & FreshTerm(party, mess)@#t2 
+        & #t1 < #t2)"
+
+// Executability check
+lemma protocol_execution:
+    exists-trace
+    "Ex A B N M #i #j #k #l.
+        Send(A, N)@#i
+        & Recv(B, N)@#j
+        & #i < #j
+        & Send(B, senc(N, 'k'))@#k
+        & Recv(A, senc(N, 'k'))@#l
+        & #k < #l"
+
+end

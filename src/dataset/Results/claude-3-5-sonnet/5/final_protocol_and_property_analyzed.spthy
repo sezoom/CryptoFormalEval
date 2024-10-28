@@ -1,0 +1,91 @@
+theory Protocol5 begin
+
+// Function signature and definition of the equational theory E
+
+functions: fst/1, h/1, pair/2, sdec/2, senc/2, snd/1
+equations:
+    fst(<x.1, x.2>) = x.1,
+    sdec(senc(x.1, x.2), x.2) = x.1,
+    snd(<x.1, x.2>) = x.2
+
+
+
+
+
+
+
+
+
+rule (modulo E) Generate_Shared_Key:
+   [ Fr( ~kab ) ] --> [ !SharedKey( $A, $B, ~kab ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) A_1:
+   [ Fr( ~n ), !SharedKey( $A, $B, kab ) ]
+  -->
+   [ Out( senc(<$A, $B, ~n, h(~n)>, kab) ), St_A_1( $A, $B, ~n, kab ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) B_1:
+   [ In( senc(<$A, $B, n, hn>, kab) ), !SharedKey( $A, $B, kab ), Fr( ~m ) ]
+  --[ Eq( hn, h(n) ), Create( $B, 'B_1' ) ]->
+   [ Out( senc(~m, kab) ), St_B_1( $A, $B, n, ~m, kab ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) A_2:
+   [ In( senc(m, kab) ), St_A_1( $A, $B, n, kab ) ]
+  --[ Commit( $A, $B, <'Protocol5', n, m> ) ]->
+   [ Out( senc(h(m), kab) ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) B_2:
+   [ In( senc(hm, kab) ), St_B_1( $A, $B, n, m, kab ) ]
+  --[ Eq( hm, h(m) ) ]->
+   [ ]
+
+  /* has exactly the trivial AC variant */
+
+lemma aliveness:
+  all-traces
+  "∀ a b t #i. (Commit( a, b, t ) @ #i) ⇒ (∃ id #j. Create( b, id ) @ #j)"
+/*
+guarded formula characterizing all counter-examples:
+"∃ a b t #i.
+  (Commit( a, b, t ) @ #i) ∧ ∀ id #j. (Create( b, id ) @ #j) ⇒ ⊥"
+*/
+simplify
+solve( St_A_1( $A, $B, n, kab ) ▶₁ #i )
+  case A_1
+  solve( !KU( senc(m, ~kab) ) @ #vk )
+    case A_1
+    SOLVED // trace found
+  qed
+qed
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* All wellformedness checks were successful. */
+
+/*
+Generated from:
+Tamarin version 1.9.0
+Maude version 2.7.1
+Git revision: ea7b979e436fc32f98369dd4e349fa0c6f1b1efd, branch: develop
+Compiled at: 2024-07-07 08:40:09.374915591 UTC
+*/
+
+end

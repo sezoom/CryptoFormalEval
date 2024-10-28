@@ -1,0 +1,71 @@
+theory Protocol5
+begin
+
+builtins: symmetric-encryption, hashing
+
+// Equational theory for symmetric encryption and hashing
+equations:
+    dec(enc(x.1, x.2), x.2) = x.1
+
+// Initial state setup for agents A and B
+rule Init:
+    let
+        kab = k($Kab)
+    in
+    [
+        Fr(~n), Fr(~m)
+    ]
+    -->
+    [
+        !A($A, $B, kab, ~n),
+        !B($A, $B, kab, ~m)
+    ]
+
+// A sends the first message to B
+rule A_to_B:
+    let
+        kab = k($Kab)
+    in
+    [
+        !A($A, $B, kab, ~n)
+    ]
+    --[ Send_A_to_B($A, $B, ~n) ]->
+    [
+        Out(enc(<$A, $B, ~n, h(~n)>, kab))
+    ]
+
+// B receives the first message and sends the second message to A
+rule B_to_A:
+    let
+        kab = k($Kab)
+    in
+    [
+        !B($A, $B, kab, ~m),
+        In(enc(<$A, $B, ~n, h(~n)>, kab))
+    ]
+    --[ Receive_A_to_B($A, $B, ~n), Send_B_to_A($B, $A, ~m) ]->
+    [
+        Out(enc(~m, kab))
+    ]
+
+// A receives the second message and sends the third message to B
+rule A_to_B_final:
+    let
+        kab = k($Kab)
+    in
+    [
+        !A($A, $B, kab, ~n),
+        In(enc(~m, kab))
+    ]
+    --[ Receive_B_to_A($B, $A, ~m), Commit($A, $B, ~m) ]->
+    [
+        Out(enc(h(~m), kab))
+    ]
+
+// Property: Aliveness of B
+lemma aliveness:
+"All a b t #i.
+Commit(a,b,t)@i
+==> (Ex id #j. Create(b,id) @ j)"
+
+end

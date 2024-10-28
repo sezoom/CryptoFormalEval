@@ -1,0 +1,10 @@
+Protocol Protocol1:
+
+Knowledge:
+    A: A, B, k(A,B), M;
+    B: A, B, k(A,B);
+
+Actions:
+    [m1] A -> B : ('freshly_generated_term' N);
+    [m2] B -> A : senc{ N }k(A,B);
+    [m3] A -> B : senc{ M }k(A,B);

@@ -1,0 +1,11 @@
+Protocol ProtocolThree:
+
+Knowledge:
+    A: A, B, pk(B), M;
+    B: A, B, pk(B), sk(B);
+
+Actions:
+    [step1] A -> B (Key) : A . senc{ A . M }Key;
+    [step2] B -> A (N) : N;
+    [step3] A -> B : aenc{ N . Key }pk(B);
+end

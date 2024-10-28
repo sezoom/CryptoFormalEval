@@ -1,0 +1,55 @@
+theory Protocol3
+
+begin
+
+builtins: symmetric-encryption, asymmetric-encryption
+
+// Public key infrastructure
+rule Generate_Keypair:
+    [ Fr(~sk) ]
+  --[ GenKey($A) ]->
+    [ !Ltk($A, ~sk), !Pk($A, pk(~sk)), Out(pk(~sk)) ]
+
+// A initiates the protocol
+rule A_1:
+    [ Fr(~key), !Pk($B, pkB) ]
+  --[ Send($A, <$A, senc(<$A, ~M>, ~key)>) ]->
+    [ Out(<$A, senc(<$A, ~M>, ~key)>),
+      St_A_1($A, $B, ~key, ~M) ]
+
+// B receives the first message and responds with a nonce
+rule B_1:
+    [ In(<$A, cipher>), Fr(~N), !Ltk($B, ~skB) ]
+  --[ Recv($B, <$A, cipher>),
+      Send($B, ~N) ]->
+    [ Out(~N),
+      St_B_1($B, $A, cipher, ~N, ~skB) ]
+
+// A responds with the encrypted nonce and key
+rule A_2:
+    [ St_A_1(A, B, key, M), In(N), !Pk(B, pkB) ]
+  --[ Send(A, aenc(<N, key>, pkB)) ]->
+    [ Out(aenc(<N, key>, pkB)) ]
+
+// B receives the final message and verifies
+rule B_2:
+    [ St_B_1(B, A, cipher, N, skB), In(enc_message) ]
+  let 
+    decrypted = adec(enc_message, skB)
+    plaintext = sdec(cipher, snd(decrypted))
+  in
+  --[ Eq(fst(decrypted), N),
+      Authentic(B, plaintext),
+      Recv(B, enc_message) ]->
+    [ ]
+
+// Axiom for equality
+axiom equality:
+    "All x y #i. Eq(x,y) @i ==> x = y"
+
+// Authentication property
+lemma message_authentication:
+    "All b m #i. Authentic(b,m) @i
+    ==> (Ex #j. Send(b,m) @j & j<i)"
+
+end

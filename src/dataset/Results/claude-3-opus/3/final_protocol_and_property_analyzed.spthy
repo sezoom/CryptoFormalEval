@@ -1,0 +1,130 @@
+theory Protocol3 begin
+
+// Function signature and definition of the equational theory E
+
+functions: adec/2, aenc/2, fst/1, pair/2, pk/1, sdec/2, senc/2, snd/1
+equations:
+    adec(aenc(x.1, pk(x.2)), x.2) = x.1,
+    fst(<x.1, x.2>) = x.1,
+    sdec(senc(x.1, x.2), x.2) = x.1,
+    snd(<x.1, x.2>) = x.2
+
+
+
+
+
+
+
+
+
+rule (modulo E) Register_pk:
+   [ Fr( ~ltk ) ] --> [ !Ltk( $A, ~ltk ), !Pk( $A, pk(~ltk) ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Get_pk:
+   [ !Pk( A, pubkey ) ] --> [ Out( pubkey ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) A_1:
+   [ Fr( ~key ), !Pk( B, pk(~ltkB) ) ]
+  --[ Send( A, <A, senc(<A, M>, ~key)> ) ]->
+   [ Out( <A, senc(<A, M>, ~key)> ), A_State_1( A, B, ~key, pk(~ltkB) ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) B_1:
+   [
+   !Ltk( B, ~ltkB ), In( <A, senc(<A, adec(snd(msg), ~ltkB)>, key)> ),
+   Fr( ~n )
+   ]
+  --[ Recv( B, <A, senc(<A, adec(snd(msg), ~ltkB)>, key)> ), Send( B, ~n )
+  ]->
+   [ Out( ~n ), B_State_1( B, A, key, ~n, pk(~ltkB) ) ]
+
+  /*
+  rule (modulo AC) B_1:
+     [ !Ltk( B, ~ltkB ), In( <A, senc(<A, z>, key)> ), Fr( ~n ) ]
+    --[ Recv( B, <A, senc(<A, z>, key)> ), Send( B, ~n ) ]->
+     [ Out( ~n ), B_State_1( B, A, key, ~n, pk(~ltkB) ) ]
+  */
+
+rule (modulo E) A_2:
+   [ A_State_1( A, B, key, pkB ), In( n ) ]
+  --[ Send( A, aenc(<n, key>, pkB) ) ]->
+   [ Out( aenc(<n, key>, pkB) ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) B_2:
+   [
+   B_State_1( B, A, key, n, pk(~ltkB) ), !Ltk( B, ~ltkB ),
+   In( aenc(<n, key>, pk(~ltkB)) )
+   ]
+  --[ Authentic( B, n ), Recv( B, aenc(<n, key>, pk(~ltkB)) ) ]->
+   [ ]
+
+  /* has exactly the trivial AC variant */
+
+lemma message_authentication:
+  all-traces
+  "∀ b m #i.
+    (Authentic( b, m ) @ #i) ⇒ (∃ #j. (Send( b, m ) @ #j) ∧ (#j < #i))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ b m #i.
+  (Authentic( b, m ) @ #i) ∧ ∀ #j. (Send( b, m ) @ #j) ⇒ ¬(#j < #i)"
+*/
+simplify
+solve( B_State_1( b, A, key, m, pk(~ltkB) ) ▶₀ #i )
+  case B_1
+  by contradiction /* from formulas */
+qed
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*
+WARNING: the following wellformedness checks failed!
+
+Unbound variables
+=================
+
+  rule `A_1' has unbound variables: 
+    A, M
+
+Message Derivation Checks
+=========================
+
+  The variables of the follwing rule(s) are not derivable from their premises, you may be performing unintended pattern matching.
+
+Rule A_1: 
+Failed to derive Variable(s): ~ltkB, A, M
+
+Rule B_1: 
+Failed to derive Variable(s): key, msg
+*/
+
+/*
+Generated from:
+Tamarin version 1.9.0
+Maude version 2.7.1
+Git revision: ea7b979e436fc32f98369dd4e349fa0c6f1b1efd, branch: develop
+Compiled at: 2024-07-07 08:40:09.374915591 UTC
+*/
+
+end

@@ -1,0 +1,96 @@
+theory ProtocolThree
+begin
+
+functions: pk/1, sk/1, aenc/2, adec/2
+
+builtins: symmetric-encryption, asymmetric-encryption
+
+equations:
+    adec(aenc(x1, sk(x2)), pk(x2)) = x1,
+    adec(aenc(x1, pk(x2)), sk(x2)) = x1
+
+rule Asymmetric_key_setup:
+    [ Fr(~f) ] --> [ !Sk($A, sk(~f)), !Pk($A, pk(~f)) ]
+
+rule Publish_public_keys_A:
+    [ !Pk(A, pkA) ] --> [ Out(pkA) ]
+
+rule Publish_public_keys_B:
+    [ !Pk(B, pkB) ] --> [ Out(pkB) ]
+
+rule Init_Knowledge:
+    [ !Pk($A, pk(k_A)),
+      !Pk($B, pk(k_B)),
+      !Sk($A, sk(k_A)),
+      !Sk($B, sk(k_B)),
+      Fr(~M)
+    ]
+    --[ ]->
+    [ St_init_A($A, $B, ~M, sk(k_A), pk(k_A), pk(k_B)),
+      St_init_B($A, $B, sk(k_B), pk(k_B))
+    ]
+
+// ROLE A
+rule step1_A:
+    [ St_init_A(A, B, M, sk(k_A), pk(k_A), pk(k_B)),
+      Fr(~Key)
+    ]
+    --[ Send(A, <A, senc{<A, M>}~Key>) ]->
+    [ Out(<A, senc{<A, M>}~Key>),
+      St_step1_A(A, B, ~Key, M, sk(k_A), pk(k_A), pk(k_B))
+    ]
+
+rule step2_A:
+    [ St_step1_A(A, B, Key, M, sk(k_A), pk(k_A), pk(k_B)),
+      In(N)
+    ]
+    --[ ]->
+    [ St_step2_A(A, B, Key, M, N, sk(k_A), pk(k_A), pk(k_B))
+    ]
+
+rule step3_A:
+    [ St_step2_A(A, B, Key, M, N, sk(k_A), pk(k_A), pk(k_B))
+    ]
+    --[ Send(A, aenc{<N, Key>}pk(k_B)) ]->
+    [ Out(aenc{<N, Key>}pk(k_B)),
+      St_step3_A(A, B, Key, M, N, sk(k_A), pk(k_A), pk(k_B))
+    ]
+
+// ROLE B
+rule step1_B:
+    [ St_init_B(A, B, sk(k_B), pk(k_B)),
+      In(<A_sender, EncryptedPart>)
+    ]
+    --[ ]->
+    [ St_step1_B(A, B, sk(k_B), pk(k_B), EncryptedPart)
+    ]
+
+rule step2_B:
+    [ St_step1_B(A, B, sk(k_B), pk(k_B), EncryptedPart),
+      Fr(~N)
+    ]
+    --[ Send(B, ~N) ]->
+    [ Out(~N),
+      St_step2_B(A, B, ~N, sk(k_B), pk(k_B), EncryptedPart)
+    ]
+
+rule step3_B:
+    [ St_step2_B(A, B, N, sk(k_B), pk(k_B), EncryptedPart),
+      In(Encrypted_N_Key)
+    ]
+    let
+        Decrypted = adec(Encrypted_N_Key, sk(k_B)),
+        <N_rec, Key> = Decrypted
+    in
+    if N_rec == N then
+        --[ Authentic(B, N) ]->
+        [ St_step3_B(A, B, Key, N, sk(k_B), pk(k_B)) ]
+    else
+        []
+    
+// Define the authenticity property
+lemma message_authentication:
+    "All b m #i. Authentic(b,m) @i
+    ==> (Ex #j. Send(b,m) @j & j<i)"
+
+end

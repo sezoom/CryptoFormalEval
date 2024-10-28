@@ -1,0 +1,72 @@
+theory One
+begin
+
+builtins: symmetric-encryption
+
+rule Symmetric_key_setup:
+    [ Fr(~symK) ] --> [ !Key($A, $B, ~symK) ]
+
+rule Init_Knowledge:
+        [ !Key($A, $B, k_A_B),
+          Fr(~M) 
+        ]
+        --[  ]->
+        [ St_init_A($A, $B, ~M, k_A_B),
+          St_init_B($A, $B, k_A_B)
+        ]
+
+// ROLE A  
+rule msg1_A:
+        [ St_init_A(A, B, M, k_A_B),
+          Fr(~N)
+        ]  
+        --[ FreshTerm(A, M) ]->
+        [ Out(~N),
+          St_msg1_A(A, B, M, ~N, k_A_B)
+        ]
+
+rule msg2_A:
+        [ St_msg1_A(A, B, M, N, k_A_B),
+          In(senc{N}k_A_B)
+        ]
+        --[  ]->
+        [ St_msg2_A(A, B, M, N, k_A_B) 
+        ]
+
+rule msg3_A:
+        [ St_msg2_A(A, B, M, N, k_A_B)
+        ]
+        --[ FreshTerm(A, M) ]->  
+        [ Out(senc{M}k_A_B),
+          St_msg3_A(A, B, M, N, k_A_B)
+        ]
+
+// ROLE B
+rule msg1_B: 
+        [ St_init_B(A, B, k_A_B),
+          In(N)
+        ]
+        --[  ]->
+        [ St_msg1_B(A, B, N, k_A_B)
+        ]
+
+rule msg2_B:
+        [ St_msg1_B(A, B, N, k_A_B)  
+        ]
+        --[  ]->
+        [ Out(senc{N}k_A_B),
+          St_msg2_B(A, B, N, k_A_B)
+        ]
+
+rule msg3_B:
+        [ St_msg2_B(A, B, N, k_A_B),
+          In(senc{M}k_A_B)
+        ]
+        --[  ]->
+        [ St_msg3_B(A, B, M, N, k_A_B)
+        ]
+
+lemma freshness:
+    "not Ex party mess #t1 #t2 . FreshTerm(party, mess)@#t1 & FreshTerm(party, mess)@#t2 & #t1 < #t2"
+
+end

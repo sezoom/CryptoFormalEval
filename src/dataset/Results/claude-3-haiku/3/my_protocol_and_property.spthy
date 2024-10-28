@@ -1,0 +1,44 @@
+theory Protocol3
+begin
+
+builtins: asymmetric-encryption, symmetric-encryption
+
+functions: pk/1, sk/1
+
+equations:
+    adec(aenc(x, pk(y)), sk(y)) = x
+
+rule Register_pk:
+    [ Fr(~ltk) ]
+    -->
+    [ !Ltk($A, ~ltk), !Pk($A, pk(~ltk)) ]
+
+rule Get_pk:
+    [ !Pk(A, pubkey) ]
+    --> 
+    [ Out(pubkey) ]
+
+rule A_Initiates:
+    [ !Ltk($A, ltkA), !Pk($B, pkB), Fr(~key) ]
+    -->
+    [ Out(<$A, senc(($A, $M), ~key)>),
+      A_Sent_Key($A, $B, ~key) ]
+
+rule B_Responds:
+    [ !Ltk($B, ltkB), In(<$A, senc(($A, $M), key)>) ]
+    --[ Authentic($B, key) ]->
+    [ Fr(~n),
+      Out(~n),
+      B_Sent_Nonce($B, ~n) ]
+
+rule A_Completes:
+    [ A_Sent_Key($A, $B, key),
+      In(aenc(($n, key), pkB)) ]
+    -->
+    [ ]
+
+lemma message_authentication:
+    "All b m #i. Authentic(b,m) @i
+    ==> (Ex #j. Send(b,m) @j & j<i)"
+
+end

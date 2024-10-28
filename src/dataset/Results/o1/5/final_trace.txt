@@ -1,0 +1,20 @@
+Types:
+    A, B : Agent;
+    I    : Intruder;
+    N2, M1 : Nonce;
+
+Knowledge:
+    Intruder knows Kab, M1 from a previous session.
+
+Actions:
+
+// Attack Session
+1. A -> I(B) : senc( <A, B, N2, h(N2)> , Kab )
+2. I(B) -> A : senc( M1 , Kab )              // Intruder replays M1
+3. A -> B  : senc( h(M1) , Kab )
+
+Observations:
+- A generates fresh nonce N2.
+- Intruder intercepts A's message to B and replays old message M1 to A.
+- A accepts M1, believing it is from B, and sends senc( h(M1), Kab ) to B.
+- B is unaware of this session; the aliveness property is violated.

@@ -1,0 +1,52 @@
+theory Protocol5
+begin
+
+builtins: symmetric-encryption, hashing
+
+// Rule for generating a shared key between A and B
+rule Generate_Shared_Key:
+    [ Fr(~kab) ]
+    -->
+    [ !SharedKey($A, $B, ~kab) ]
+
+// Rule for A initiating the protocol
+rule A_1:
+    let msg = senc(<$A, $B, ~n, h(~n)>, kab)
+    in
+    [ Fr(~n), !SharedKey($A, $B, kab) ]
+    -->
+    [ Out(msg), St_A_1($A, $B, ~n, kab) ]
+
+// Rule for B receiving the first message and responding
+rule B_1:
+    let msg_in = senc(<$A, $B, n, hn>, kab)
+        msg_out = senc(~m, kab)
+    in
+    [ In(msg_in), !SharedKey($A, $B, kab), Fr(~m) ]
+    --[ Eq(hn, h(n)), Create($B, 'B_1') ]->
+    [ Out(msg_out), St_B_1($A, $B, n, ~m, kab) ]
+
+// Rule for A receiving B's response and sending the final message
+rule A_2:
+    let msg_in = senc(m, kab)
+        msg_out = senc(h(m), kab)
+    in
+    [ In(msg_in), St_A_1($A, $B, n, kab) ]
+    --[ Commit($A, $B, <'Protocol5', n, m>) ]->
+    [ Out(msg_out) ]
+
+// Rule for B receiving the final message
+rule B_2:
+    let msg_in = senc(hm, kab)
+    in
+    [ In(msg_in), St_B_1($A, $B, n, m, kab) ]
+    --[ Eq(hm, h(m)) ]->
+    [ ]
+
+// Lemma for aliveness of B
+lemma aliveness:
+"All a b t #i.
+    Commit(a,b,t)@i
+    ==> (Ex id #j. Create(b,id) @ j)"
+
+end

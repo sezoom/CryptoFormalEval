@@ -1,0 +1,42 @@
+theory Protocol3
+begin
+
+builtins: asymmetric-encryption, symmetric-encryption
+
+// Equational theory for asymmetric encryption
+equations:
+    adec(aenc(x.1, pk(x.2)), sk(x.2)) = x.1
+
+// Initial knowledge setup
+rule Init_Knowledge:
+    [ Fr(~prB), Fr(~M) ]
+    -->
+    [ !Pk($B, pk(~prB)), !Sk($B, ~prB), !Msg($M) ]
+
+// Role A: Initiate communication
+rule A_Initiates:
+    let
+        pubB = pk(~prB)
+    in
+    [ Fr(~Key), !Msg(M), !Pk(B, pubB) ]
+    -->
+    [ Out(<A, senc(<A, M>, ~Key)>), !Key(A, B, ~Key) ]
+
+// Role B: Respond with nonce
+rule B_Responds:
+    [ In(<A, senc(<A, M>, Key)>), !Sk(B, ~prB) ]
+    -->
+    [ Fr(~N), Out(~N), !Nonce(B, ~N), !Key(A, B, Key) ]
+
+// Role A: Send encrypted nonce and key
+rule A_Sends_Encrypted_Nonce:
+    [ In(~N), !Key(A, B, Key), !Pk(B, pubB) ]
+    -->
+    [ Out(aenc(<~N, Key>, pubB)), !Nonce(A, ~N) ]
+
+// Property: Authenticity of N
+lemma message_authentication:
+    "All b m #i. Authentic(b,m) @i
+    ==> (Ex #j. Send(b,m) @j & j<i)"
+
+end

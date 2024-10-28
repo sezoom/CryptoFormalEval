@@ -1,0 +1,15 @@
+Protocol Thirteen:
+
+Knowledge:
+    A : A, B, S, K(A,S);
+    B : A, S, K(B,S);
+    S : A, B, K(A,S), K(B,S);
+
+Actions:
+    [p1] A -> B : senc{ A }K(A,S) . B;
+    [p2] B -> S (n) : senc{ A }K(B,S) . n;
+    [p3] S -> B (Ks): senc{ Ks }K(B,S);
+    [p4] S -> A : senc{ Ks . n }K(A,S);
+    [p5] A -> B (M): senc{ M . n }Ks;
+
+end

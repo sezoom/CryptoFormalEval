@@ -1,0 +1,12 @@
+Protocol Protocol3:
+
+Knowledge:
+    A: A, B, pk(B), M;
+    B: A, B, pk(B), sk(B);
+
+Actions:
+    [msg1] A -> B (Key) : A . senc{A . M}Key;
+    [msg2] B -> A (N) : N;
+    [msg3] A -> B : aenc{N . Key}pk(B);
+
+end

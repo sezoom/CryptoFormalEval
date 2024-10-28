@@ -1,0 +1,13 @@
+Types:
+    A : A;
+    B : B;
+    E : Attacker;
+
+Actions:
+    [step1] A -> E : A, senc((A, M), Key);
+    [step2] E -> B : A, senc((A, M), Key);  // E forwards the message to B
+    [step3] B -> E : N;                     // B responds with N
+    [step4] E -> A : N;                     // E forwards N to A
+    [step5] A -> E : aenc((N, Key), pkB);   // A sends the encrypted message to E
+    [step6] E -> B : aenc((N, Key), pkB);   // E forwards the encrypted message to B
+    [step7] E -> A : aenc((N, Key), pkB);   // E replays the encrypted message to A

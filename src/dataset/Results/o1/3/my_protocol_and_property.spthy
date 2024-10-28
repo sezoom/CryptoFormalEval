@@ -1,0 +1,105 @@
+theory Protocol3
+begin
+
+builtins: symmetric-encryption, asymmetric-encryption
+
+// Generate B's key pair and make public key available
+rule Generate_B_Keys:
+    let
+        pkB = pk(~skB)
+    in
+    [
+        Fr(~skB)
+    ]
+    -->
+    [
+        !PrivateKey($B, ~skB),
+        !PublicKey($B, pkB),
+        Out(pkB)
+    ]
+
+// Initialize agent A with knowledge of B's public key and message M
+rule Initialize_A:
+    [
+        !PublicKey($B, pkB),
+        Fr(~M)
+    ]
+    -->
+    [
+        State_A($A, $B, pkB, ~M)
+    ]
+
+// Initialize agent B with his private key
+rule Initialize_B:
+    [
+        !PrivateKey($B, skB),
+        !PublicKey($B, pkB)
+    ]
+    -->
+    [
+        State_B($A, $B, pkB, skB)
+    ]
+
+// A sends the first message: A, senc((A, M), Key)
+rule A_Sends_Message1:
+    [
+        State_A(A, B, pkB, M),
+        Fr(~Key)
+    ]
+    --[ Send(A, <A, senc(<A, M>, ~Key)>)]->
+    [
+        Out(<A, senc(<A, M>, ~Key)>),
+        State_A1(A, B, pkB, M, ~Key)
+    ]
+
+// B receives the first message and generates N
+rule B_Receives_Message1:
+    [
+        State_B(A, B, pkB, skB),
+        In(<A_sender, EncryptedPart>),
+        Fr(~N)
+    ]
+    --[ Send(B, ~N) ]->
+    [
+        Out(~N),
+        State_B1(A, B, pkB, skB, EncryptedPart, ~N)
+    ]
+
+// A receives N and sends the third message: aenc((N, Key), pkB)
+rule A_Sends_Message3:
+    [
+        State_A1(A, B, pkB, M, Key),
+        In(N)
+    ]
+    --[ Send(A, aenc(<N, Key>, pkB)) ]->
+    [
+        Out(aenc(<N, Key>, pkB)),
+        State_A2(A, B, pkB, M, Key, N)
+    ]
+
+// B receives the third message, decrypts it to obtain N and Key
+rule B_Receives_Message3:
+    [
+        State_B1(A, B, pkB, skB, EncryptedPart, N),
+        In(Encrypted_N_Key)
+    ]
+    --[ Authentic(B, N) ]->
+    let
+        Decrypted := adec(Encrypted_N_Key, skB)
+    in
+    [
+        // Check if Decrypted equals <N, Key>
+        // Tamarin allows matching in premises
+        ( Decrypted = <N, Key> ) // Matching condition
+    ]
+    -->
+    [
+        State_B2(A, B, pkB, skB, EncryptedPart, N, Key)
+    ]
+
+// Define the authenticity property
+lemma message_authentication:
+    "All b m #i. Authentic(b,m) @i
+    ==> (Ex #j. Send(b,m) @j & j<i)"
+
+end

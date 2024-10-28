@@ -1,0 +1,94 @@
+theory Protocol5 begin
+
+// Function signature and definition of the equational theory E
+
+functions: fst/1, h/1, pair/2, sdec/2, senc/2, snd/1
+equations:
+    fst(<x.1, x.2>) = x.1,
+    sdec(senc(x.1, x.2), x.2) = x.1,
+    snd(<x.1, x.2>) = x.2
+
+
+
+
+
+
+
+
+
+rule (modulo E) Create_A:
+   [ Fr( ~Kab ) ] --> [ !Ltk( $A, $B, ~Kab ), !Pk( $A, $B, ~Kab ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Get_Kab:
+   [ !Pk( A, B, Kab ) ] --> [ Out( Kab ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) A_1:
+   [ !Ltk( $A, $B, Kab ), Fr( ~N ) ]
+  --[ Create( $A, ~N ) ]->
+   [ Out( senc(<$A, $B, ~N, h(~N)>, Kab) ), A_State_1( $A, $B, ~N, Kab ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) B_1:
+   [ !Ltk( A, B, Kab ), In( senc(<A, B, N, hN>, Kab) ), Fr( ~M ) ]
+  --[ Create( B, ~M ) ]->
+   [ Out( senc(~M, Kab) ), B_State_1( A, B, N, hN, Kab, ~M ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) A_2:
+   [ A_State_1( A, B, N, Kab ), In( senc(M, Kab) ) ]
+  -->
+   [ Out( senc(h(M), Kab) ), A_State_2( A, B, N, Kab, M ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) B_2:
+   [ B_State_1( A, B, N, hN, Kab, M ), In( senc(hM, Kab) ) ]
+  --[ Commit( A, B, <N, M> ) ]->
+   [ ]
+
+  /* has exactly the trivial AC variant */
+
+lemma aliveness:
+  all-traces
+  "∀ a b t #i.
+    (Commit( a, b, t ) @ #i) ⇒ (∃ a1 t1 #j. Create( a1, t1 ) @ #j)"
+/*
+guarded formula characterizing all counter-examples:
+"∃ a b t #i.
+  (Commit( a, b, t ) @ #i) ∧ ∀ a1 t1 #j. (Create( a1, t1 ) @ #j) ⇒ ⊥"
+*/
+simplify
+solve( B_State_1( a, b, N, hN, Kab, M ) ▶₀ #i )
+  case B_1
+  by contradiction /* from formulas */
+qed
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* All wellformedness checks were successful. */
+
+/*
+Generated from:
+Tamarin version 1.9.0
+Maude version 2.7.1
+Git revision: ea7b979e436fc32f98369dd4e349fa0c6f1b1efd, branch: develop
+Compiled at: 2024-07-07 08:40:09.374915591 UTC
+*/
+
+end

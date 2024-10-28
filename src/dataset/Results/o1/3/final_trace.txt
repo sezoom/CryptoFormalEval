@@ -1,0 +1,20 @@
+Types:
+    A, B : Agent
+    E : Agent  // Intruder
+    M : Message
+    N, N' : Nonce
+    Key : SymmetricKey
+    pkB : PubKey
+
+Knowledge:
+    A: A, B, pkB, M
+    B: A, B, pkB
+    E: pkB
+
+Actions:
+[1] A -> E : A, senc{ A, M }Key
+[2] E -> A : N'
+[3] A -> E : aenc{ N', Key }pkB
+[4] E -> B : A, senc{ A, M }Key
+[5] B -> E : N
+[6] E -> B : aenc{ N', Key }pkB

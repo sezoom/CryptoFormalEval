@@ -1,0 +1,55 @@
+theory Protocol5
+begin
+
+builtins: symmetric-encryption, hashing
+
+rule Init
+  [ Fr(~Kab) ]
+  -->
+  [ !State_A($A, $B, ~Kab),
+    !State_B($A, $B, ~Kab)
+  ]
+
+rule A_1
+  [ !State_A(A,B,Kab),
+    Fr(~N)
+  ]
+  -->
+  [ Out(senc(<A,B,~N,h(~N)>,Kab)),
+    State_A1(A,B,Kab,~N)
+  ]
+
+rule B_1
+  [ !State_B(A,B,Kab),
+    In(senc(<A,B,n,hN>,Kab))
+  ]
+  -->
+  [ State_B1(A,B,Kab,n,hN) ]
+
+rule B_2
+  [ State_B1(A,B,Kab,n,hN),
+    Fr(~M)
+  ]
+  --[ Create(B,~M) ]->
+  [ Out(senc(~M,Kab)),
+    State_B2(A,B,Kab,n,hN,~M) ]
+
+rule A_2
+  [ State_A1(A,B,Kab,N),
+    In(senc(M,Kab))
+  ]
+  -->
+  [ State_A2(A,B,Kab,N,M) ]
+
+rule A_3
+  [ State_A2(A,B,Kab,N,M)
+  ]
+  --[ Commit(A,B,N) ]->
+  [ Out(senc(h(M),Kab)) ]
+
+lemma aliveness:
+"All a b t #i.
+Commit(a,b,t)@i
+==> (Ex id #j. Create(b,id) @ j)"
+
+end

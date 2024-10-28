@@ -1,0 +1,4 @@
+A → E : aenc((’g’^a, A, pkA), prA), pkA
+E → A : aenc((N, ‘g’^b, B, pkE), pkA)
+A → E : senc(h(N), ‘g’^b^a)
+E → A : aenc(‘g’^a^b, prE)

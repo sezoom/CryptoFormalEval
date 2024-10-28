@@ -1,0 +1,12 @@
+Types:
+    A : A;
+    B : B;
+    E : Attacker;
+
+Actions:
+    A -> E : ('freshly_generated_term' N)
+    E -> B : ('freshly_generated_term' N)
+    B -> E : senc{N}k(A,B)
+    E -> A : senc{N}k(A,B)
+    A -> E : senc{M}k(A,B)
+    E -> B : senc{M}k(A,B)

@@ -1,0 +1,88 @@
+theory ProtocolThree
+begin
+
+functions: pk/1, sk/1, aenc/2, adec/2
+
+builtins: symmetric-encryption
+
+equations:
+    adec(aenc(x.1, sk(x.2)), pk(x.2)) = x.1,
+    adec(aenc(x.1, pk(x.2)), sk(x.2)) = x.1
+
+rule Asymmetric_key_setup:
+    [ Fr(~f) ] --> [ !Sk($A, sk(~f)), !Pk($A, pk(~f)) ]
+
+rule Publish_public_keys:
+    [ !Pk(A, pkA) ] --> [ Out(pkA) ]
+
+rule Symmetric_key_setup:
+    [ Fr(~symK) ] --> [ !Key($A, $B, ~symK) ]
+
+rule Init_Knowledge:
+        [ !Pk($A, pk(k_A)),
+          !Pk($B, pk(k_B)),
+          !Sk($A, sk(k_A)),
+          !Sk($B, sk(k_B)),
+          Fr(~M)
+        ]
+        --[  ]->
+        [ St_init_A($A, $B, ~M, sk(k_A), pk(k_A), pk(k_B)),
+          St_init_B($A, $B, sk(k_B), pk(k_B))
+        ]
+
+// ROLE A
+rule step1_A:
+        [ St_init_A(A, B, M, sk(k_A), pk(k_A), pk(k_B)),
+          Fr(~Key)
+        ]
+        --[  ]->
+        [ Out(<A, senc{<A, M>}~Key>),
+          St_step1_A(A, B, ~Key, M, sk(k_A), pk(k_A), pk(k_B))
+        ]
+
+rule step2_A:
+        [ St_step1_A(A, B, Key, M, sk(k_A), pk(k_A), pk(k_B)),
+          In(N)
+        ]
+        --[  ]->
+        [ St_step2_A(A, B, Key, M, N, sk(k_A), pk(k_A), pk(k_B))
+        ]
+
+rule step3_A:
+        [ St_step2_A(A, B, Key, M, N, sk(k_A), pk(k_A), pk(k_B))
+        ]
+        --[  ]->
+        [ Out(aenc{<N, Key>}pk(k_B)),
+          St_step3_A(A, B, Key, M, N, sk(k_A), pk(k_A), pk(k_B))
+        ]
+
+// ROLE B
+rule step1_B:
+        [ St_init_B(A, B, sk(k_B), pk(k_B)),
+          In(<A, alpha>)
+        ]
+        --[  ]->
+        [ St_step1_B(A, B, sk(k_B), pk(k_B), alpha)
+        ]
+
+rule step2_B:
+        [ St_step1_B(A, B, sk(k_B), pk(k_B), alpha),
+          Fr(~N)
+        ]
+        --[  ]->
+        [ Out(~N),
+          St_step2_B(A, B, ~N, sk(k_B), pk(k_B), alpha)
+        ]
+
+rule step3_B:
+    let
+        alpha = senc{<A, M>}Key
+    in
+        [ St_step2_B(A, B, N, sk(k_B), pk(k_B), alpha),
+          In(aenc{<N, Key>}pk(k_B))
+        ]
+        --[  ]->
+        [ St_step3_B(A, B, Key, M, N, sk(k_B), pk(k_B))
+        ]
+
+end

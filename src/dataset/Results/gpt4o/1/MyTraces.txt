@@ -1,0 +1,13 @@
+Types:
+    A : A;
+    B : B;
+    E : Attacker;
+
+Actions:
+    A -> E : N;
+    E -> B : N;
+    B -> E : senc(N, Kab);
+    E -> A : senc(N, Kab);
+    A -> E : senc(M, Kab);
+    E -> B : senc(M, Kab);
+    E -> B : senc(M, Kab);  // Replay in a different session

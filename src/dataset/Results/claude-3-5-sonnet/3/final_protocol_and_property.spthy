@@ -1,0 +1,67 @@
+theory Protocol_3
+begin
+
+builtins: asymmetric-encryption, symmetric-encryption
+
+// Public key infrastructure
+rule Register_pk:
+    [ Fr(~sk) ] --[ ]-> [ !Pk($A, pk(~sk)), !Sk($A, ~sk), Out(pk(~sk)) ]
+
+// A's first action
+rule A_1:
+    let 
+        msg = senc(<$A, ~M>, ~Key)
+    in
+    [ Fr(~M), Fr(~Key) ]
+    --[ Send($A, msg) ]->
+    [ Out(<$A, msg>), St_A_1($A, $B, ~M, ~Key) ]
+
+// B's first action
+rule B_1:
+    [ In(<$A, msg>), !Pk($B, pkB), !Sk($B, skB) ]
+    --[ Recv($B, msg) ]->
+    [ St_B_1($A, $B, msg, pkB, skB) ]
+
+// B's second action
+rule B_2:
+    [ St_B_1($A, $B, msg, pkB, skB), Fr(~N) ]
+    --[ Send($B, ~N) ]->
+    [ Out(~N), St_B_2($A, $B, msg, ~N, pkB, skB) ]
+
+// A's second action
+rule A_2:
+    let 
+        enc_msg = aenc(<N, ~Key>, pkB)
+    in
+    [ St_A_1($A, $B, ~M, ~Key), In(N), !Pk($B, pkB) ]
+    --[ Send($A, enc_msg), Authentic($B, N) ]->
+    [ Out(enc_msg) ]
+
+// B's third action
+rule B_3:
+    let 
+        dec_msg = adec(enc_msg, skB)
+        N = fst(dec_msg)
+        Key = snd(dec_msg)
+        plain_msg = sdec(msg, Key)
+        M = snd(plain_msg)
+    in
+    [ St_B_2($A, $B, msg, ~N, pkB, skB), In(enc_msg) ]
+    --[ Authentic($B, ~N), Secret(M) ]->
+    [ ]
+
+// Restriction for equality (changed from axiom)
+restriction equality:
+    "All x y #i. Eq(x,y) @ i ==> x = y"
+
+// Authentication lemma
+lemma message_authentication:
+    "All b m #i. Authentic(b,m) @i
+    ==> (Ex #j. Send(b,m) @j & j<i)"
+
+// Executability check (modified to remove unguarded variable)
+lemma protocol_execution:
+    exists-trace
+    "Ex A m #i #j. Send(A, m) @j & Secret(m) @i"
+
+end

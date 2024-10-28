@@ -1,0 +1,14 @@
+Protocol fifteen:
+
+Knowledge:
+    A : A, B, S, k(A,S);
+    B : B, S, k(B,S);
+    S : A, B, S, k(A,S), k(B,S);
+
+Actions:
+    [p1] A -> S (n) : A . B . n;
+    [p2] S -> A (Key): senc{ A . B . n . Key }k(A,S) . senc{ A . B . n . Key }k(B,S);
+    [p3] A -> B : senc{ A . B . n . Key }k(B,S) . senc{ A . B . n }Key;
+    [p4] B -> A : senc{ A . B . h(n) }Key;
+
+end

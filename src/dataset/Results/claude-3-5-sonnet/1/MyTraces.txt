@@ -1,0 +1,16 @@
+Types:
+    A : A;
+    B : B;
+    E : Attacker;
+
+Actions:
+    A -> E : N
+    E -> B : N
+    B -> E : senc(N, Kab)
+    E -> A : senc(N, Kab)
+    A -> E : senc(M, Kab)
+    E -> B : senc(M, Kab)
+    E(B) -> A : N'  // Attacker impersonates B with a new nonce
+    A -> E : senc(N', Kab)
+    E(B) -> A : senc(N, Kab)  // Replay old nonce
+    A -> E : senc(M, Kab)  // A sends M again, violating freshness

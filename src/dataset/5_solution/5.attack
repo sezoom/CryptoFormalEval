@@ -1,0 +1,3 @@
+A → E : senc((A,B,N,h(N)), Kab)
+E → A : senc((A,B,N,h(N)), Kab)
+A → E : senc(h(A,B,N,h(N)), Kab)

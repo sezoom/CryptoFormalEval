@@ -1,0 +1,12 @@
+Types:
+    A : A;
+    B : B;
+    E : Attacker;
+
+Actions:
+    A -> E : A, senc((A, M), Key);
+    E -> B : E, senc((A, M), Key);
+    B -> E : N;
+    E -> A : N';
+    A -> E : aenc((N', Key), pkB);
+    E -> B : aenc((N, Key'), pkB);

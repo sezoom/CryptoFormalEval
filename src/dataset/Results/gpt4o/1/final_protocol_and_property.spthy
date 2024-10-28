@@ -1,0 +1,67 @@
+theory Protocol1
+begin
+
+builtins: symmetric-encryption
+
+// Initial knowledge
+rule Init:
+    let
+        kab = k(~kab)
+    in
+    [
+        Fr(~kab)
+    ]
+    -->
+    [
+        !SymmetricKey(kab),
+        !InitKnowledge(A, B, kab)
+    ]
+
+// Role A initiates the protocol by sending N
+rule A_Sends_N:
+    let
+        n = ~n
+    in
+    [
+        Fr(~n),
+        !InitKnowledge(A, B, kab)
+    ]
+    --[ FreshTerm(A, n) ]->
+    [
+        Out(n),
+        !A_Sent_N(A, B, n, kab)
+    ]
+
+// Role B receives N and responds with senc(N, Kab)
+rule B_Responds_With_Encrypted_N:
+    [
+        In(n),
+        !A_Sent_N(A, B, n, kab)
+    ]
+    --[ FreshTerm(B, senc(n, kab)) ]->
+    [
+        Out(senc(n, kab)),
+        !B_Responded_With_Encrypted_N(B, A, n, kab)
+    ]
+
+// Role A receives senc(N, Kab) and sends senc(M, Kab)
+rule A_Sends_Encrypted_M:
+    let
+        m = ~m
+    in
+    [
+        Fr(~m),
+        In(senc(n, kab)),
+        !B_Responded_With_Encrypted_N(B, A, n, kab)
+    ]
+    --[ FreshTerm(A, m) ]->
+    [
+        Out(senc(m, kab)),
+        !A_Sent_Encrypted_M(A, B, m, kab)
+    ]
+
+// Property: Freshness of M
+lemma freshness:
+    "not Ex party mess #t1 #t2 . FreshTerm(party, mess)@#t1 & FreshTerm(party, mess)@#t2 & #t1 < #t2"
+
+end

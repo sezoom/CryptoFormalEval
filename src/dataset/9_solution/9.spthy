@@ -1,0 +1,113 @@
+theory nine
+begin
+
+functions: pk/1, sk/1, aenc/2, adec/2
+
+builtins: symmetric-encryption
+
+equations:
+    adec(aenc(x.1, sk(x.2)), pk(x.2)) = x.1,
+    adec(aenc(x.1, pk(x.2)), sk(x.2)) = x.1
+
+rule Asymmetric_key_setup:
+    [ Fr(~f) ] --> [ !Sk($A, sk(~f)), !Pk($A, pk(~f)) ]
+
+rule Publish_public_keys:
+    [ !Pk(A, pkA) ] --> [ Out(pkA) ]
+
+rule Symmetric_key_setup:
+    [ Fr(~symK) ] --> [ !Key($A, $B, ~symK) ]
+
+rule Init_Knowledge:
+        [ !Pk($A, pk(k_A)),
+          !Pk($B, pk(k_B)),
+          !Pk($S, pk(k_S)),
+          !Sk($A, sk(k_A)),
+          !Sk($B, sk(k_B)),
+          !Sk($S, sk(k_S))
+        ]
+        --[  ]->
+        [ St_init_A($A, $B, $S, sk(k_A), pk(k_A)),
+          St_init_S($A, $B, $S, sk(k_S), pk(k_A), pk(k_S)),
+          St_init_B($A, $B, $S, sk(k_B), pk(k_B), pk(k_S))
+        ]
+
+// ROLE A
+rule msg1_A:
+        [ St_init_A(A, B, S, sk(k_A), pk(k_A))
+        ]
+        --[  ]->
+        [ Out(aenc{<A, pk(k_A)>}sk(k_A)),
+          St_msg1_A(A, B, S, sk(k_A), pk(k_A))
+        ]
+
+rule msg4_A:
+        [ St_msg1_A(A, B, S, sk(k_A), pk(k_A)),
+          In(aenc{M}pk(k_A))
+        ]
+        --[  ]->
+        [ St_msg4_A(A, B, M, S, sk(k_A), pk(k_A))
+        ]
+
+// ROLE S
+rule msg1_S:
+    let
+        alpha = aenc{<A, pk(k_A)>}sk(k_A)
+    in
+        [ St_init_S(A, B, S, sk(k_S), pk(k_A), pk(k_S)),
+          In(alpha)
+        ]
+        --[  ]->
+        [ St_msg1_S(A, B, S, sk(k_S), pk(k_A), pk(k_S), alpha)
+        ]
+
+rule msg2_S:
+    let
+        alpha = aenc{<A, pk(k_A)>}sk(k_A)
+    in
+        [ St_msg1_S(A, B, S, sk(k_S), pk(k_A), pk(k_S), alpha),
+          In(aenc{<A, Kb>}pk(k_S))
+        ]
+        --[  ]->
+        [ St_msg2_S(A, B, Kb, S, sk(k_S), pk(k_A), pk(k_S), alpha)
+        ]
+
+rule msg3_S:
+        [ St_msg2_S(A, B, Kb, S, sk(k_S), pk(k_A), pk(k_S), alpha)
+        ]
+        --[  ]->
+        [ Out(senc{pk(k_A)}Kb),
+          St_msg3_S(A, B, Kb, S, sk(k_S), pk(k_A), pk(k_S), alpha)
+        ]
+
+// ROLE B
+rule msg2_B:
+        [ St_init_B(A, B, S, sk(k_B), pk(k_B), pk(k_S)),
+          Fr(~Kb)
+        ]
+        --[  ]->
+        [ Out(aenc{<A, ~Kb>}pk(k_S)),
+          St_msg2_B(A, B, ~Kb, S, sk(k_B), pk(k_B), pk(k_S))
+        ]
+
+rule msg3_B:
+        [ St_msg2_B(A, B, Kb, S, sk(k_B), pk(k_B), pk(k_S)),
+          In(senc{pk(k_A)}Kb)
+        ]
+        --[  ]->
+        [ St_msg3_B(A, B, Kb, S, sk(k_B), pk(k_A), pk(k_B), pk(k_S))
+        ]
+
+rule msg4_B:
+        [ St_msg3_B(A, B, Kb, S, sk(k_B), pk(k_A), pk(k_B), pk(k_S)),
+          Fr(~M)
+        ]
+        --[  Secret(~M)]->
+        [ Out(aenc{~M}pk(k_A)),
+          St_msg4_B(A, B, Kb, ~M, S, sk(k_B), pk(k_A), pk(k_B), pk(k_S))
+        ]
+
+lemma secrecy:
+"All x #i.
+Secret(x) @i ==> not (Ex #j. K(x)@j)"
+end

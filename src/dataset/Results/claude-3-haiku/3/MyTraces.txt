@@ -1,0 +1,24 @@
+# Attack Trace 1: Man-in-the-Middle Attack
+
+Types:
+    A : A
+    B : B
+    E : Attacker
+
+Actions:
+    A -> E : A, senc((A, M), Key)
+    E -> B : A, senc((A, M), Key)
+    B -> E : N
+    E -> A : N
+    A -> E : aenc((N, Key), pkB)
+    E -> B : aenc((N, Key), pkB)
+
+# Explanation:
+# 1. A initiates the protocol by sending a message encrypted with a freshly generated key to B.
+# 2. The attacker (E) intercepts the message and forwards it to B.
+# 3. B responds by generating a fresh nonce (N) and sending it to the attacker (E).
+# 4. The attacker (E) forwards the nonce to A.
+# 5. A completes the protocol by sending the nonce and the key encrypted with B's public key to the attacker (E).
+# 6. The attacker (E) forwards the message to B.
+
+# This attack trace violates the "message_authentication" property because B is authentic for the nonce N, but there was no previous send event of N by B.

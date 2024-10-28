@@ -1,0 +1,128 @@
+theory Thirteen
+begin
+
+functions: pk/1, sk/1, aenc/2, adec/2
+
+builtins: symmetric-encryption
+
+equations:
+    adec(aenc(x.1, sk(x.2)), pk(x.2)) = x.1,
+    adec(aenc(x.1, pk(x.2)), sk(x.2)) = x.1
+
+rule Asymmetric_key_setup:
+    [ Fr(~f) ] --> [ !Sk($A, sk(~f)), !Pk($A, pk(~f)) ]
+
+rule Publish_public_keys:
+    [ !Pk(A, pkA) ] --> [ Out(pkA) ]
+
+rule Symmetric_key_setup:
+    [ Fr(~symK) ] --> [ !Key($A, $B, ~symK) ]
+
+rule Init_Knowledge:
+        [ !Key($A, $S, k_A_S),
+          !Key($B, $S, k_B_S),
+          !Pk($A, pk(k_A)),
+          !Pk($B, pk(k_B)),
+          !Pk($S, pk(k_S)),
+          !Sk($A, sk(k_A)),
+          !Sk($B, sk(k_B)),
+          !Sk($S, sk(k_S))
+        ]
+        --[  ]->
+        [ St_init_A($A, $B, $S, sk(k_A), pk(k_A), k_A_S),
+          St_init_B($A, $B, $S, sk(k_B), pk(k_B), k_B_S),
+          St_init_S($A, $B, $S, sk(k_S), pk(k_S), k_A_S, k_B_S)
+        ]
+
+// ROLE A
+rule p1_A:
+        [ St_init_A(A, B, S, sk(k_A), pk(k_A), k_A_S)
+        ]
+        --[  ]->
+        [ Out(<senc{A}k_A_S, B>),
+          St_p1_A(A, B, S, sk(k_A), pk(k_A), k_A_S)
+        ]
+
+rule p4_A:
+        [ St_p1_A(A, B, S, sk(k_A), pk(k_A), k_A_S),
+          In(senc{<Ks, n>}k_A_S)
+        ]
+        --[  ]->
+        [ St_p4_A(A, B, Ks, S, n, sk(k_A), pk(k_A), k_A_S)
+        ]
+
+rule p5_A:
+        [ St_p4_A(A, B, Ks, S, n, sk(k_A), pk(k_A), k_A_S),
+          Fr(~M)
+        ]
+        --[ Running(B, A, n)  ]->
+        [ Out(senc{<~M, n>}Ks),
+          St_p5_A(A, B, Ks, ~M, S, n, sk(k_A), pk(k_A), k_A_S)
+        ]
+
+// ROLE B
+rule p1_B:
+        [ St_init_B(A, B, S, sk(k_B), pk(k_B), k_B_S),
+          In(<alpha, B>)
+        ]
+        --[  ]->
+        [ St_p1_B(A, B, S, sk(k_B), pk(k_B), k_B_S, alpha)
+        ]
+
+rule p2_B:
+        [ St_p1_B(A, B, S, sk(k_B), pk(k_B), k_B_S, alpha),
+          Fr(~n)
+        ]
+        --[  ]->
+        [ Out(<senc{A}k_B_S, ~n>),
+          St_p2_B(A, B, S, ~n, sk(k_B), pk(k_B), k_B_S, alpha)
+        ]
+
+rule p3_B:
+        [ St_p2_B(A, B, S, n, sk(k_B), pk(k_B), k_B_S, alpha),
+          In(senc{Ks}k_B_S)
+        ]
+        --[  ]->
+        [ St_p3_B(A, B, Ks, S, n, sk(k_B), pk(k_B), k_B_S, alpha)
+        ]
+
+rule p5_B:
+        [ St_p3_B(A, B, Ks, S, n, sk(k_B), pk(k_B), k_B_S, alpha),
+          In(senc{<M, n>}Ks)
+        ]
+        --[ Commit(A,B,n) ]->
+        [ St_p5_B(A, B, Ks, M, S, n, sk(k_B), pk(k_B), k_B_S, alpha)
+        ]
+
+// ROLE S
+rule p2_S:
+        [ St_init_S(A, B, S, sk(k_S), pk(k_S), k_A_S, k_B_S),
+          In(<senc{A}k_B_S, n>)
+        ]
+        --[  ]->
+        [ St_p2_S(A, B, S, n, sk(k_S), pk(k_S), k_A_S, k_B_S)
+        ]
+
+rule p3_S:
+        [ St_p2_S(A, B, S, n, sk(k_S), pk(k_S), k_A_S, k_B_S),
+          Fr(~Ks)
+        ]
+        --[  ]->
+        [ Out(senc{~Ks}k_B_S),
+          St_p3_S(A, B, ~Ks, S, n, sk(k_S), pk(k_S), k_A_S, k_B_S)
+        ]
+
+rule p4_S:
+        [ St_p3_S(A, B, Ks, S, n, sk(k_S), pk(k_S), k_A_S, k_B_S)
+        ]
+        --[  ]->
+        [ Out(senc{<Ks, n>}k_A_S),
+          St_p4_S(A, B, Ks, S, n, sk(k_S), pk(k_S), k_A_S, k_B_S)
+        ]
+
+lemma weak_agreement:
+"All a b t1 #i.
+Commit(a,b,t1) @i
+==> (Ex t2 #j. Running(b,a,t2) @j)"
+
+end

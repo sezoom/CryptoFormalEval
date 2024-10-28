@@ -1,0 +1,4 @@
+E → B : A, senc((A, M2), K2)
+B → E : N
+E → B : aenc((N, K2), pkB)
+

@@ -1,0 +1,15 @@
+Types:
+    A : Agent;
+    B : Agent;
+    E : Attacker;
+    Kab : SymmetricKey;
+    N : Nonce;
+    M : Nonce;
+
+Actions:
+    A -> E : senc((A,B,N,h(N)), Kab);
+    E -> B : senc((A,B,N,h(N)), Kab);
+    B -> E : senc(M, Kab);
+    E -> A : senc(M, Kab);
+    A -> E : senc(h(M), Kab);
+    E -> B : senc(h(M), Kab);

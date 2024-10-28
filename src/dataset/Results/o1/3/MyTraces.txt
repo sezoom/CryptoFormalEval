@@ -1,0 +1,30 @@
+Types:
+    A, B : Agent
+    E : Intruder
+    M : Message
+    N, N' : Nonce
+    Key : SymmetricKey
+    pkB : PubKey
+
+Knowledge:
+    A: A, B, pkB, M
+    B: A, B, pkB
+    E: pkB
+
+Actions:
+1. A -> E(B) : A, senc{ (A, M) }Key
+2. E(B) -> A : N'
+3. A -> E(B) : aenc{ (N', Key) }pkB
+4. E(B) -> B : A, senc{ (A, M) }Key
+5. B -> E(A) : N
+6. E(A) -> B : aenc{ (N', Key) }pkB
+
+Description:
+- The intruder E intercepts the message from A to B and impersonates B to A.
+- E generates a nonce N' and sends it to A pretending to be B.
+- A encrypts N' and Key with B's public key and sends it back to E.
+- E forwards the initial message from A to B.
+- B responds with its nonce N, which E intercepts.
+- E sends the encrypted (N', Key) to B.
+- B believes that N' is authentic, violating the authenticity property of N.
+

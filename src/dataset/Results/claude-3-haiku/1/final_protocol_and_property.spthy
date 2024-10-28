@@ -1,0 +1,41 @@
+theory Protocol1
+begin
+
+builtins: symmetric-encryption
+
+functions: pk/1, sk/1, aenc/2, adec/2
+
+rule Symmetric_key_setup:
+    [ Fr(~symK) ] --> [ !Key($A, $B, ~symK) ]
+
+// ROLE A
+rule msg1_A:
+    [ !Key($A, $B, k) ]
+    --[ ]--> 
+    [ Out(~n),
+      St_msg1_A($A, $B, ~n, k)
+    ]
+
+rule msg2_A:
+    [ St_msg1_A($A, $B, n, k),
+      In(senc{n}k)
+    ]
+    --[ ]--> 
+    [ Out(senc{M}k),
+      St_msg2_A($A, $B, n, M, k)
+    ]
+
+// ROLE B  
+rule msg1_B:
+    [ !Key($A, $B, k),
+      In(n)
+    ]
+    --[ ]--> 
+    [ Out(senc{n}k),
+      St_msg1_B($A, $B, n, k)
+    ]
+
+lemma freshness:
+    "not Ex party mess #t1 #t2 . FreshTerm(party, mess)@#t1 & FreshTerm(party, mess)@#t2 & #t1 < #t2"
+
+end

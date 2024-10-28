@@ -1,0 +1,66 @@
+theory Protocol1
+begin
+
+builtins: symmetric-encryption
+
+rule Create_A:
+    let 
+        A = $A
+        B = $B
+        Kab = ~Kab
+    in
+    [
+        Fr(~Kab)
+    ]
+    -->
+    [
+        !A_State(A, B, Kab),
+        !B_State(A, B, Kab)
+    ]
+
+rule A_Sends_N:
+    let
+        N = ~N
+        M = ~M
+    in
+    [
+        Fr(~N),
+        Fr(~M),
+        !A_State(A, B, Kab)
+    ]
+    --[ FreshTerm(A, ~M) ]->
+    [
+        Out(N),
+        A_State_1(A, B, Kab, N, M)
+    ]
+
+rule B_Sends_senc:
+    let
+        senc_N = senc(N, Kab)
+    in
+    [
+        !B_State(A, B, Kab),
+        In(N)
+    ]
+    -->
+    [
+        Out(senc_N)
+    ]
+
+rule A_Sends_senc_M:
+    let
+        senc_M = senc(M, Kab)
+    in
+    [
+        A_State_1(A, B, Kab, N, M),
+        In(senc(N, Kab))
+    ]
+    -->
+    [
+        Out(senc_M)
+    ]
+
+lemma freshness:
+    "not Ex party mess #t1 #t2 . FreshTerm(party, mess)@#t1 & FreshTerm(party, mess)@#t2 & #t1 < #t2"
+
+end

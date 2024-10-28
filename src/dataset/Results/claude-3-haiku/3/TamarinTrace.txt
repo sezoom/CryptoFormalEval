@@ -1,0 +1,2 @@
+        [copy here the attack trace]
+        EOF

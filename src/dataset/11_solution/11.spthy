@@ -1,0 +1,114 @@
+theory eleven
+begin
+
+functions: pk/1, sk/1, aenc/2, adec/2, g/0
+
+builtins: diffie-hellman, symmetric-encryption, hashing
+
+equations:
+    adec(aenc(x.1, sk(x.2)), pk(x.2)) = x.1,
+    adec(aenc(x.1, pk(x.2)), sk(x.2)) = x.1
+
+rule Asymmetric_key_setup:
+    [ Fr(~f) ] --> [ !Sk($A, sk(~f)), !Pk($A, pk(~f)) ]
+
+rule Publish_public_keys:
+    [ !Pk(A, pkA) ] --> [ Out(pkA) ]
+
+rule Symmetric_key_setup:
+    [ Fr(~symK) ] --> [ !Key($A, $B, ~symK) ]
+
+rule Init_Knowledge:
+        [ !Pk($A, pk(k_A)),
+          !Pk($B, pk(k_B)),
+          !Sk($A, sk(k_A)),
+          !Sk($B, sk(k_B))
+        ]
+        --[  ]->
+        [ St_init_A($A, $B, sk(k_A), pk(k_A), pk(k_B)),
+          St_init_B($A, $B, sk(k_B), pk(k_A), pk(k_B))
+        ]
+
+// ROLE A
+rule msg1_A:
+        [ St_init_A(A, B, sk(k_A), pk(k_A), pk(k_B)),
+          Fr(~na)
+        ]
+        --[  ]->
+        [ Out(<aenc{<(g() ^ ~na), A, pk(k_A)>}sk(k_A), pk(k_A)>),
+          St_msg1_A(A, B, ~na, sk(k_A), pk(k_A), pk(k_B))
+        ]
+
+rule msg2_A:
+        [ St_msg1_A(A, B, na, sk(k_A), pk(k_A), pk(k_B)),
+          In(aenc{<N, alpha, B, pk(k_B)>}pk(k_A))
+        ]
+        --[  ]->
+        [ St_msg2_A(A, B, N, na, sk(k_A), pk(k_A), pk(k_B), alpha)
+        ]
+
+rule msg3_A:
+        [ St_msg2_A(A, B, N, na, sk(k_A), pk(k_A), pk(k_B), alpha)
+        ]
+        --[  ]->
+        [ Out(senc{h(N)}(alpha ^ na)),
+          St_msg3_A(A, B, N, na, sk(k_A), pk(k_A), pk(k_B), alpha)
+        ]
+
+rule msg4_A:
+    let
+        epsilon = aenc{(alpha ^ na)}sk(k_B)
+    in
+        [ St_msg3_A(A, B, N, na, sk(k_A), pk(k_A), pk(k_B), alpha),
+          In(epsilon)
+        ]
+        --[  ]->
+        [ St_msg4_A(A, B, N, na, sk(k_A), pk(k_A), pk(k_B), epsilon, alpha)
+        ]
+
+// ROLE B
+rule msg1_B:
+    let
+        beta = aenc{<alpha, A, pk(k_A)>}sk(k_A)
+    in
+        [ St_init_B(A, B, sk(k_B), pk(k_A), pk(k_B)),
+          In(<beta, pk(k_A)>)
+        ]
+        --[  ]->
+        [ St_msg1_B(A, B, sk(k_B), pk(k_A), pk(k_B), beta, alpha)
+        ]
+
+rule msg2_B:
+        [ St_msg1_B(A, B, sk(k_B), pk(k_A), pk(k_B), beta, alpha),
+          Fr(~N),
+          Fr(~nb)
+        ]
+        --[ Secret(~N) ]->
+        [ Out(aenc{<~N, (g() ^ ~nb), B, pk(k_B)>}pk(k_A)),
+          St_msg2_B(A, B, ~N, ~nb, sk(k_B), pk(k_A), pk(k_B), beta, alpha)
+        ]
+
+rule msg3_B:
+    let
+        beta = aenc{<alpha, A, pk(k_A)>}sk(k_A)
+    in
+        [ St_msg2_B(A, B, N, nb, sk(k_B), pk(k_A), pk(k_B), beta, alpha),
+          In(senc{h(N)}(alpha ^ nb))
+        ]
+        --[  ]->
+        [ St_msg3_B(A, B, N, nb, sk(k_B), pk(k_A), pk(k_B), beta, alpha)
+        ]
+
+rule msg4_B:
+        [ St_msg3_B(A, B, N, nb, sk(k_B), pk(k_A), pk(k_B), beta, alpha)
+        ]
+        --[  ]->
+        [ Out(aenc{(alpha ^ nb)}sk(k_B)),
+          St_msg4_B(A, B, N, nb, sk(k_B), pk(k_A), pk(k_B), beta, alpha)
+        ]
+
+lemma secrecy:
+    "not(Ex N #i #j. Secret(N) @i & K(N) @j)"
+
+end
+

@@ -1,0 +1,56 @@
+theory Protocol1
+
+begin
+
+builtins: symmetric-encryption
+
+// Agent constants
+functions:
+    A/0
+    B/0
+
+// Shared symmetric key between A and B
+functions:
+    Kab/0
+
+// Initial state where A and B are ready to start the protocol
+rule Initialize:
+    [ ]
+    --[ ]->
+    [ State_A1(A,B), State_B1(A,B) ]
+
+// A generates a fresh nonce N and sends it to B
+rule A_Sends_N:
+    [ State_A1(A,B), Fr(~N) ]
+    --[ ]->
+    [ Out(~N), State_A2(A,B,~N) ]
+
+// B receives N and sends back senc(N, Kab)
+rule B_Receives_N:
+    [ State_B1(A,B), In(N) ]
+    --[ ]->
+    [ Out(senc(N,Kab)), State_B2(A,B,N) ]
+
+// A receives senc(N, Kab) and proceeds to the next step
+rule A_Receives_sencN:
+    [ State_A2(A,B,N), In(senc(N,Kab)) ]
+    --[ ]->
+    [ State_A3(A,B) ]
+
+// A generates a fresh message M, records its freshness, and sends senc(M, Kab) to B
+rule A_Sends_sencM:
+    [ State_A3(A,B), Fr(~M) ]
+    --[ FreshTerm(A, ~M) ]->
+    [ Out(senc(~M, Kab)), State_A4(A,B,~M) ]
+
+// B receives senc(M, Kab) and proceeds
+rule B_Receives_sencM:
+    [ State_B2(A,B,N), In(senc(M1,Kab)) ]
+    --[ ]->
+    [ State_B3(A,B,M1) ]
+
+// Freshness property lemma
+lemma freshness:
+    "not (Ex party mess #t1 #t2 . FreshTerm(party, mess) @ #t1 & FreshTerm(party, mess) @ #t2 & #t1 < #t2)"
+
+end

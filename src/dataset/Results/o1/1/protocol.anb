@@ -1,0 +1,9 @@
+Protocol One:
+Knowledge:
+    A : A, B, K(A,B), M;
+    B : A, B, K(A,B);
+Actions:
+    [step1] A -> B (N) : N;
+    [step2] B -> A : senc{ N }K(A,B);
+    [step3] A -> B : senc{ M }K(A,B);
+end

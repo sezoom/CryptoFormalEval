@@ -1,0 +1,50 @@
+theory MyProtocol
+
+begin
+
+builtins: symmetric-encryption
+
+// Initialize the shared key Kab and message M, and the initial states of A and B
+rule Initialize:
+    [ Fr(~Kab), Fr(~M) ]
+    -->
+    [ 
+      !SharedKey('A','B', ~Kab),
+      !Message(~M),
+      State_A1('A','B', ~Kab, ~M),
+      State_B1('A','B', ~Kab)
+    ]
+
+// A sends N to B
+rule A_Sends_N:
+    [ State_A1('A','B',Kab,M), Fr(~N) ]
+    -->
+    [ Out(~N), State_A2('A','B',Kab,M,~N) ]
+
+// B receives N and sends senc(N, Kab)
+rule B_Receives_N:
+    [ State_B1('A','B',Kab), In(N) ]
+    -->
+    [ Out(senc(N,Kab)), State_B2('A','B',Kab,N) ]
+
+// A receives senc(N,Kab)
+rule A_Receives_sencN:
+    [ State_A2('A','B',Kab,M,N), In(sencN) ]
+    -->
+    [ State_A3('A','B',Kab,M,N) ]
+
+// A sends senc(M, Kab), generating FreshTerm observable
+rule A_Sends_sencM:
+    [ State_A3('A','B',Kab,M,N) ]
+    --[ FreshTerm('A', M) ]->
+    [ Out(senc(M,Kab)), State_A4('A','B',Kab,M,N) ]
+
+// B receives senc(M,Kab)
+rule B_Receives_sencM:
+    [ State_B2('A','B',Kab,N), In(sencM) ]
+    -->
+    [ State_B3('A','B',Kab,N) ]
+
+lemma freshness:
+"not (Ex party mess #t1 #t2 . FreshTerm(party, mess) @ #t1 & FreshTerm(party, mess) @ #t2 & #t1 < #t2)"
+end

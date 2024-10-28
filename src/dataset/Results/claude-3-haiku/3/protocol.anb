@@ -1,0 +1,12 @@
+Protocol Protocol3:
+
+Knowledge:
+    A: A, B, pk(B), M;
+    B: A, B, pk(B), sk(B);
+
+Actions:
+    [step1] A -> B : A, senc{ A . M }k('freshly_generated_key');
+    [step2] B -> A : ('freshly_generated_nonce') N;
+    [step3] A -> B : aenc{ N . 'freshly_generated_key' }pk(B);
+
+end

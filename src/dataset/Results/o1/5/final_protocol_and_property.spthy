@@ -1,0 +1,73 @@
+theory five
+begin
+
+builtins: symmetric-encryption, hashing
+
+rule Symmetric_key_setup:
+    [ Fr(~k_A_B) ] --> [ !Key($A, $B, ~k_A_B) ]
+
+rule Init_Knowledge:
+    [ !Key($A, $B, k_A_B) ]
+    --[ ]->
+    [ St_init_A($A, $B, k_A_B),
+      St_init_B($A, $B, k_A_B)
+    ]
+
+// ROLE A
+rule msg1_A:
+    [ St_init_A($A, $B, k_A_B),
+      Fr(~N)
+    ]
+    --[  ]->
+    [ Out(senc{<$A, $B, ~N, h(~N)>}k_A_B),
+      St_msg1_A($A, $B, ~N, k_A_B)
+    ]
+
+rule msg2_A:
+    [ St_msg1_A($A, $B, N, k_A_B),
+      In(senc{M}k_A_B)
+    ]
+    --[  ]->
+    [ St_msg2_A($A, $B, M, N, k_A_B)
+    ]
+
+rule msg3_A:
+    [ St_msg2_A($A, $B, M, N, k_A_B)
+    ]
+    --[ Commit($A,$B,N) ]->
+    [ Out(senc{h(M)}k_A_B),
+      St_msg3_A($A, $B, M, N, k_A_B)
+    ]
+
+// ROLE B
+rule msg1_B:
+    [ St_init_B($A, $B, k_A_B),
+      In(senc{<$A, $B, N, h(N)>}k_A_B)
+    ]
+    --[  ]->
+    [ St_msg1_B($A, $B, N, k_A_B)
+    ]
+
+rule msg2_B:
+    [ St_msg1_B($A, $B, N, k_A_B),
+      Fr(~M)
+    ]
+    --[ Create($B,~M) ]->
+    [ Out(senc{~M}k_A_B),
+      St_msg2_B($A, $B, ~M, N, k_A_B)
+    ]
+
+rule msg3_B:
+    [ St_msg2_B($A, $B, M, N, k_A_B),
+      In(senc{h(M)}k_A_B)
+    ]
+    --[  ]->
+    [ St_msg3_B($A, $B, M, N, k_A_B)
+    ]
+
+lemma aliveness:
+"All a b t #i.
+Commit(a,b,t)@i
+==> (Ex id #j. Create(b,id) @ j)"
+
+end

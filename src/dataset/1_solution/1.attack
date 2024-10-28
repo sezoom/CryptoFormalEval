@@ -1,0 +1,6 @@
+A → B : N1
+B → A : senc(N1, K)
+A → B : senc(M, K)
+E → B : N2
+B → E : senc(N2, K)
+E → B : senc(M, K)

@@ -1,0 +1,114 @@
+/*
+M is a message from A to B
+K is a freshly generated symmetric key
+N is a nonce
+PuB is B’s public key
+
+A -> B : A, senc((A, M), K)
+B -> A : N
+A -> B : aenc((N, K), PuB)
+
+# Failed properties
+lemma message_authentication:
+"All b m #i. Authentic(b,m) @i
+==> (Ex #j. Send(b,m) @j & j<i)"
+end
+
+- Authenticity of M 
+*/
+theory three
+begin
+
+functions: pk/1, sk/1, aenc/2, adec/2
+
+builtins: symmetric-encryption
+
+equations:
+    adec(aenc(x.1, sk(x.2)), pk(x.2)) = x.1,
+    adec(aenc(x.1, pk(x.2)), sk(x.2)) = x.1
+
+rule Asymmetric_key_setup:
+    [ Fr(~f) ] --> [ !Sk($A, sk(~f)), !Pk($A, pk(~f)) ]
+
+rule Publish_public_keys:
+    [ !Pk(A, pkA) ] --> [ Out(pkA) ]
+
+rule Symmetric_key_setup:
+    [ Fr(~symK) ] --> [ !Key($A, $B, ~symK) ]
+
+rule Init_Knowledge:
+        [ !Pk($A, pk(k_A)),
+          !Pk($B, pk(k_B)),
+          !Sk($A, sk(k_A)),
+          !Sk($B, sk(k_B)),
+          Fr(~M)
+        ]
+        --[  ]->
+        [ St_init_A($A, $B, ~M, sk(k_A), pk(k_A), pk(k_B)),
+          St_init_B($A, $B, sk(k_B), pk(k_B))
+        ]
+
+// ROLE A
+rule m1_A:
+        [ St_init_A(A, B, M, sk(k_A), pk(k_A), pk(k_B)),
+          Fr(~Ks)
+        ]
+        --[ Send(B,M) ]->
+        [ Out(<A, senc{<A, M>}~Ks>),
+          St_m1_A(A, B, ~Ks, M, sk(k_A), pk(k_A), pk(k_B))
+        ]
+
+rule m2_A:
+        [ St_m1_A(A, B, Ks, M, sk(k_A), pk(k_A), pk(k_B)),
+          In(N)
+        ]
+        --[  ]->
+        [ St_m2_A(A, B, Ks, M, N, sk(k_A), pk(k_A), pk(k_B))
+        ]
+
+rule m3_A:
+        [ St_m2_A(A, B, Ks, M, N, sk(k_A), pk(k_A), pk(k_B))
+        ]
+        --[  ]->
+        [ Out(aenc{<N, Ks>}pk(k_B)),
+          St_m3_A(A, B, Ks, M, N, sk(k_A), pk(k_A), pk(k_B))
+        ]
+
+// ROLE B
+rule m1_B:
+        [ St_init_B(A, B, sk(k_B), pk(k_B)),
+          In(<A, alpha>)
+        ]
+        --[  ]->
+        [ St_m1_B(A, B, sk(k_B), pk(k_B), alpha)
+        ]
+
+rule m2_B:
+        [ St_m1_B(A, B, sk(k_B), pk(k_B), alpha),
+          Fr(~N)
+        ]
+        --[  ]->
+        [ Out(~N),
+          St_m2_B(A, B, ~N, sk(k_B), pk(k_B), alpha)
+        ]
+
+rule m3_B:
+    let
+        alpha = senc{<A, M>}Ks
+    in
+        [ St_m2_B(A, B, N, sk(k_B), pk(k_B), alpha),
+          In(aenc{<N, Ks>}pk(k_B))
+        ]
+        --[ Authentic(B,M)  ]->
+        [ St_m3_B(A, B, Ks, M, N, sk(k_B), pk(k_B))
+        ]
+
+// lemma executable:
+// exists-trace
+//    "Ex A B M N #i #j. SendA(A,M)@i & Recv(B,N) @j"
+    
+lemma message_authentication:
+    "All b m #i. Authentic(b,m) @i
+    ==> (Ex #j. Send(b,m) @j & j<i)"
+
+end

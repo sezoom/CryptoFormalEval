@@ -1,0 +1,85 @@
+theory Protocol5
+begin
+
+functions: pk/1, sk/1, aenc/2, adec/2
+
+builtins: symmetric-encryption, hashing
+
+equations:
+    adec(aenc(x.1, sk(x.2)), pk(x.2)) = x.1,
+    adec(aenc(x.1, pk(x.2)), sk(x.2)) = x.1
+
+rule Asymmetric_key_setup:
+    [ Fr(~f) ] --> [ !Sk($A, sk(~f)), !Pk($A, pk(~f)) ]
+
+rule Publish_public_keys:
+    [ !Pk(A, pkA) ] --> [ Out(pkA) ]
+
+rule Symmetric_key_setup:
+    [ Fr(~symK) ] --> [ !Key($A, $B, ~symK) ]
+
+rule Init_Knowledge:
+        [ !Key($A, $B, k_A_B),
+          !Pk($A, pk(k_A)),
+          !Pk($B, pk(k_B)),
+          !Sk($A, sk(k_A)),
+          !Sk($B, sk(k_B))
+        ]
+        --[  ]->
+        [ St_init_A($A, $B, sk(k_A), pk(k_A), k_A_B),
+          St_init_B($A, $B, sk(k_B), pk(k_B), k_A_B)
+        ]
+
+// ROLE A
+rule msg1_A:
+        [ St_init_A(A, B, sk(k_A), pk(k_A), k_A_B),
+          Fr(~N)
+        ]
+        --[  ]->
+        [ Out(senc{<A, B, ~N, h(~N)>}k_A_B),
+          St_msg1_A(A, B, ~N, sk(k_A), pk(k_A), k_A_B)
+        ]
+
+rule msg2_A:
+        [ St_msg1_A(A, B, N, sk(k_A), pk(k_A), k_A_B),
+          In(senc{M}k_A_B)
+        ]
+        --[  ]->
+        [ St_msg2_A(A, B, M, N, sk(k_A), pk(k_A), k_A_B)
+        ]
+
+rule msg3_A:
+        [ St_msg2_A(A, B, M, N, sk(k_A), pk(k_A), k_A_B)
+        ]
+        --[  ]->
+        [ Out(senc{h(M)}k_A_B),
+          St_msg3_A(A, B, M, N, sk(k_A), pk(k_A), k_A_B)
+        ]
+
+// ROLE B
+rule msg1_B:
+        [ St_init_B(A, B, sk(k_B), pk(k_B), k_A_B),
+          In(senc{<A, B, N, h(N)>}k_A_B)
+        ]
+        --[  ]->
+        [ St_msg1_B(A, B, N, sk(k_B), pk(k_B), k_A_B)
+        ]
+
+rule msg2_B:
+        [ St_msg1_B(A, B, N, sk(k_B), pk(k_B), k_A_B),
+          Fr(~M)
+        ]
+        --[  ]->
+        [ Out(senc{~M}k_A_B),
+          St_msg2_B(A, B, ~M, N, sk(k_B), pk(k_B), k_A_B)
+        ]
+
+rule msg3_B:
+        [ St_msg2_B(A, B, M, N, sk(k_B), pk(k_B), k_A_B),
+          In(senc{h(M)}k_A_B)
+        ]
+        --[  ]->
+        [ St_msg3_B(A, B, M, N, sk(k_B), pk(k_B), k_A_B)
+        ]
+
+end

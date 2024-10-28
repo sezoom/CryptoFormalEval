@@ -1,0 +1,3 @@
+E → B : aenc((A,Na), pubB)
+B → E : senc(Nb, h(Na))
+E → B : aenc(h(Nb), pubB)

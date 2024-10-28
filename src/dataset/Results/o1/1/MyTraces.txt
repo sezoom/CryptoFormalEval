@@ -1,0 +1,24 @@
+Types:
+    Agent, Nonce, Symmetric_key, Message
+
+    A, B, E : Agent
+    N1, N2  : Nonce
+    Kab     : Symmetric_key
+    M       : Message
+
+Knowledge:
+    A : A, B, Kab, M
+    E : A, B
+
+Actions:
+    // Session 1
+    E(B) -> A : N1
+    A -> E(B) : N1
+    E(B) -> A : senc(N1, Kab)
+    A -> E(B) : senc(M, Kab)
+
+    // Session 2
+    E(B) -> A : N2
+    A -> E(B) : N2
+    E(B) -> A : senc(N2, Kab)
+    A -> E(B) : senc(M, Kab)

@@ -1,0 +1,254 @@
+theory Protocol5 begin
+
+// Function signature and definition of the equational theory E
+
+functions: adec/2, aenc/2, fst/1, h/1, pair/2, pk/1, sdec/2, senc/2,
+           sk/1, snd/1
+equations:
+    adec(aenc(x.1, pk(x.2)), sk(x.2)) = x.1,
+    adec(aenc(x.1, sk(x.2)), pk(x.2)) = x.1,
+    fst(<x.1, x.2>) = x.1,
+    sdec(senc(x.1, x.2), x.2) = x.1,
+    snd(<x.1, x.2>) = x.2
+
+
+
+
+
+
+
+
+
+rule (modulo E) Asymmetric_key_setup:
+   [ Fr( ~f ) ] --> [ !Sk( $A, sk(~f) ), !Pk( $A, pk(~f) ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Publish_public_keys:
+   [ !Pk( A, pkA ) ] --> [ Out( pkA ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Symmetric_key_setup:
+   [ Fr( ~symK ) ] --> [ !Key( $A, $B, ~symK ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Init_Knowledge:
+   [
+   !Key( $A, $B, k_A_B ), !Pk( $A, pk(k_A) ), !Pk( $B, pk(k_B) ),
+   !Sk( $A, sk(k_A) ), !Sk( $B, sk(k_B) )
+   ]
+  -->
+   [
+   St_init_A( $A, $B, sk(k_A), pk(k_A), k_A_B ),
+   St_init_B( $A, $B, sk(k_B), pk(k_B), k_A_B )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) msg1_A:
+   [ St_init_A( A, B, sk(k_A), pk(k_A), k_A_B ), Fr( ~N ) ]
+  --[ Send_A_to_B( A, B, ~N ) ]->
+   [
+   Out( senc(<A, B, ~N, h(~N)>, k_A_B) ),
+   St_msg1_A( A, B, ~N, sk(k_A), pk(k_A), k_A_B )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) msg2_A:
+   [ St_msg1_A( A, B, N, sk(k_A), pk(k_A), k_A_B ), In( senc(M, k_A_B) ) ]
+  --[ Receive_A_to_B( A, B, ~N ), Send_B_to_A( B, A, ~M ) ]->
+   [ St_msg2_A( A, B, M, N, sk(k_A), pk(k_A), k_A_B ) ]
+
+  /*
+  rule (modulo AC) msg2_A:
+     [ St_msg1_A( A, B, N, sk(k_A), pk(k_A), k_A_B ), In( senc(M, k_A_B) ) ]
+    --[ Receive_A_to_B( A, B, ~N.1 ), Send_B_to_A( B, A, ~M.1 ) ]->
+     [ St_msg2_A( A, B, M, N, sk(k_A), pk(k_A), k_A_B ) ]
+  */
+
+rule (modulo E) msg3_A:
+   [ St_msg2_A( A, B, M, N, sk(k_A), pk(k_A), k_A_B ) ]
+  --[ Receive_B_to_A( B, A, ~M ), Commit( A, B, ~M ) ]->
+   [
+   Out( senc(h(M), k_A_B) ),
+   St_msg3_A( A, B, M, N, sk(k_A), pk(k_A), k_A_B )
+   ]
+
+  /*
+  rule (modulo AC) msg3_A:
+     [ St_msg2_A( A, B, M, N, sk(k_A), pk(k_A), k_A_B ) ]
+    --[ Receive_B_to_A( B, A, ~M.1 ), Commit( A, B, ~M.1 ) ]->
+     [
+     Out( senc(h(M), k_A_B) ),
+     St_msg3_A( A, B, M, N, sk(k_A), pk(k_A), k_A_B )
+     ]
+  */
+
+rule (modulo E) msg1_B:
+   [
+   St_init_B( A, B, sk(k_B), pk(k_B), k_A_B ),
+   In( senc(<A, B, N, h(N)>, k_A_B) )
+   ]
+  --[ Receive_A_to_B( A, B, ~N ) ]->
+   [ St_msg1_B( A, B, N, sk(k_B), pk(k_B), k_A_B ) ]
+
+  /*
+  rule (modulo AC) msg1_B:
+     [
+     St_init_B( A, B, sk(k_B), pk(k_B), k_A_B ),
+     In( senc(<A, B, N, h(N)>, k_A_B) )
+     ]
+    --[ Receive_A_to_B( A, B, ~N.1 ) ]->
+     [ St_msg1_B( A, B, N, sk(k_B), pk(k_B), k_A_B ) ]
+  */
+
+rule (modulo E) msg2_B:
+   [ St_msg1_B( A, B, N, sk(k_B), pk(k_B), k_A_B ), Fr( ~M ) ]
+  --[ Send_B_to_A( B, A, ~M ) ]->
+   [
+   Out( senc(~M, k_A_B) ), St_msg2_B( A, B, ~M, N, sk(k_B), pk(k_B), k_A_B )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) msg3_B:
+   [
+   St_msg2_B( A, B, M, N, sk(k_B), pk(k_B), k_A_B ), In( senc(h(M), k_A_B) )
+   ]
+  --[ Commit( A, B, ~M ) ]->
+   [ St_msg3_B( A, B, M, N, sk(k_B), pk(k_B), k_A_B ) ]
+
+  /*
+  rule (modulo AC) msg3_B:
+     [
+     St_msg2_B( A, B, M, N, sk(k_B), pk(k_B), k_A_B ), In( senc(h(M), k_A_B) )
+     ]
+    --[ Commit( A, B, ~M.1 ) ]->
+     [ St_msg3_B( A, B, M, N, sk(k_B), pk(k_B), k_A_B ) ]
+  */
+
+lemma aliveness:
+  all-traces
+  "∀ a b t #i. (Commit( a, b, t ) @ #i) ⇒ (∃ id #j. Create( b, id ) @ #j)"
+/*
+guarded formula characterizing all counter-examples:
+"∃ a b t #i.
+  (Commit( a, b, t ) @ #i) ∧ ∀ id #j. (Create( b, id ) @ #j) ⇒ ⊥"
+*/
+simplify
+solve( Commit( a, b, t ) @ #i )
+  case msg3_A
+  solve( St_msg2_A( a, b, M, N, sk(k_A), pk(k_A), k_A_B ) ▶₀ #i )
+    case msg2_A
+    solve( !KU( senc(M, ~symK) ) @ #vk )
+      case msg1_A
+      SOLVED // trace found
+    qed
+  qed
+qed
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*
+WARNING: the following wellformedness checks failed!
+
+Unbound variables
+=================
+
+  rule `msg2_A' has unbound variables: 
+    ~M, ~N
+  
+  rule `msg3_A' has unbound variables: 
+    ~M
+  
+  rule `msg1_B' has unbound variables: 
+    ~N
+  
+  rule `msg3_B' has unbound variables: 
+    ~M
+
+Variable with mismatching sorts or capitalization
+=================================================
+
+Possible reasons:
+1. Identifiers are case sensitive, i.e.,'x' and 'X' are considered to be different.
+2. The same holds for sorts:, i.e., '$x', 'x', and '~x' are considered to be different.
+
+  rule `msg2_A': 
+    1. ~M, M
+    
+    2. ~N, N
+  
+  rule `msg3_A': 
+    1. ~M, M
+  
+  rule `msg1_B': 
+    1. ~N, N
+  
+  rule `msg3_B': 
+    1. ~M, M
+
+Inexistant lemma actions
+========================
+
+  lemma `aliveness' references action 
+    fact "Create" (arity 2, Linear) 
+  but no rule has such an action.
+
+Message Derivation Checks
+=========================
+
+  The variables of the follwing rule(s) are not derivable from their premises, you may be performing unintended pattern matching.
+
+Rule Init_Knowledge: 
+Failed to derive Variable(s): k_A, k_B
+
+Rule msg1_A: 
+Failed to derive Variable(s): k_A
+
+Rule msg2_A: 
+Failed to derive Variable(s): ~M, ~N, k_A
+
+Rule msg3_A: 
+Failed to derive Variable(s): ~M, k_A
+
+Rule msg1_B: 
+Failed to derive Variable(s): ~N, k_B
+
+Rule msg2_B: 
+Failed to derive Variable(s): k_B
+
+Rule msg3_B: 
+Failed to derive Variable(s): ~M, k_B
+*/
+
+/*
+Generated from:
+Tamarin version 1.9.0
+Maude version 2.7.1
+Git revision: ea7b979e436fc32f98369dd4e349fa0c6f1b1efd, branch: develop
+Compiled at: 2024-07-07 08:40:09.374915591 UTC
+*/
+
+end

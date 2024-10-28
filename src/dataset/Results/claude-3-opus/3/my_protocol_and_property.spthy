@@ -1,0 +1,50 @@
+theory Protocol3
+begin
+
+builtins: asymmetric-encryption, symmetric-encryption
+
+// Public key infrastructure
+rule Register_pk:
+    [ Fr(~ltk) ]
+    -->
+    [ !Ltk($A, ~ltk), !Pk($A, pk(~ltk)) ]
+
+rule Get_pk:
+    [ !Pk(A, pubkey) ]
+    -->
+    [ Out(pubkey) ]
+
+// Protocol
+rule A_1:
+    let pkB = pk(~ltkB)
+    in
+    [ Fr(~key), !Pk(B, pkB) ]
+    --[ Send(A, <A, senc(<A, M>, ~key)>) ]->
+    [ Out(<A, senc(<A, M>, ~key)>), A_State_1(A, B, ~key, pkB) ]
+
+rule B_1:
+    let M = adec(snd(msg), ~ltkB)
+        pkB = pk(~ltkB)
+    in
+    [ !Ltk(B, ~ltkB), In(<A, senc(<A, M>, key)>), Fr(~n) ]
+    --[ Recv(B, <A, senc(<A, M>, key)>), Send(B, ~n) ]->
+    [ Out(~n), B_State_1(B, A, key, ~n, pkB) ]
+
+rule A_2:
+    [ A_State_1(A, B, key, pkB), In(n) ]
+    --[ Send(A, aenc(<n, key>, pkB)) ]->
+    [ Out(aenc(<n, key>, pkB)) ]
+
+rule B_2:
+    let pkB = pk(~ltkB)
+    in
+    [ B_State_1(B, A, key, n, pkB), !Ltk(B, ~ltkB), In(aenc(<n, key>, pkB)) ]
+    --[ Authentic(B, n) ]->
+    []
+
+// Property
+lemma message_authentication:
+    "All b m #i. Authentic(b,m) @i
+    ==> (Ex #j. Send(b,m) @j & j<i)"
+
+end

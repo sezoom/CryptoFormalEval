@@ -1,0 +1,88 @@
+theory Seven
+begin
+
+functions: pk/1, sk/1, aenc/2, adec/2
+
+builtins: symmetric-encryption, hashing
+
+equations:
+    adec(aenc(x.1, sk(x.2)), pk(x.2)) = x.1,
+    adec(aenc(x.1, pk(x.2)), sk(x.2)) = x.1
+
+rule Asymmetric_key_setup:
+    [ Fr(~f) ] --> [ !Sk($A, sk(~f)), !Pk($A, pk(~f)) ]
+
+rule Publish_public_keys:
+    [ !Pk(A, pkA) ] --> [ Out(pkA) ]
+
+rule Symmetric_key_setup:
+    [ Fr(~symK) ] --> [ !Key($A, $B, ~symK) ]
+
+rule Init_Knowledge:
+        [ !Pk($A, pk(k_A)),
+          !Pk($B, pk(k_B)),
+          !Sk($A, sk(k_A)),
+          !Sk($B, sk(k_B)),
+          Fr(~prB)
+        ]
+        --[  ]->
+        [ St_init_A($A, $B, sk(k_A), pk(k_A), pk(k_B)),
+          St_init_B($B, ~prB, sk(k_B), pk(k_B))
+        ]
+
+// ROLE A
+rule p1_A:
+        [ St_init_A(A, B, sk(k_A), pk(k_A), pk(k_B)),
+          Fr(~Na)
+        ]
+        --[  SentBy('A', ~Na)]->
+        [ Out(aenc{<A, ~Na>}pk(k_B)),
+          St_p1_A(A, B, ~Na, sk(k_A), pk(k_A), pk(k_B))
+        ]
+
+rule p2_A:
+        [ St_p1_A(A, B, Na, sk(k_A), pk(k_A), pk(k_B)),
+          In(senc{Nb}h(Na))
+        ]
+        --[  ]->
+        [ St_p2_A(A, B, Na, Nb, sk(k_A), pk(k_A), pk(k_B))
+        ]
+
+rule p3_A:
+        [ St_p2_A(A, B, Na, Nb, sk(k_A), pk(k_A), pk(k_B))
+        ]
+        --[  ]->
+        [ Out(aenc{h(Nb)}pk(k_B)),
+          St_p3_A(A, B, Na, Nb, sk(k_A), pk(k_A), pk(k_B))
+        ]
+
+// ROLE B
+rule p1_B:
+        [ St_init_B(B, prB, sk(k_B), pk(k_B)),
+          In(aenc{<A, Na>}pk(k_B))
+        ]
+        --[  ]->
+        [ St_p1_B(A, B, Na, prB, sk(k_B), pk(k_B))
+        ]
+
+rule p2_B:
+        [ St_p1_B(A, B, Na, prB, sk(k_B), pk(k_B)),
+          Fr(~Nb)
+        ]
+        --[  ]->
+        [ Out(senc{~Nb}h(Na)),
+          St_p2_B(A, B, Na, ~Nb, prB, sk(k_B), pk(k_B))
+        ]
+
+rule p3_B:
+        [ St_p2_B(A, B, Na, Nb, prB, sk(k_B), pk(k_B)),
+          In(aenc{h(Nb)}pk(k_B))
+        ]
+        --[ ReceivedFrom('A', Na) ]->
+        [ St_p3_B(A, B, Na, Nb, prB, sk(k_B), pk(k_B))
+        ]
+
+lemma nonrepudiation:
+"All x client #t1 . (ReceivedFrom(client, x)@t1 ==> Ex #t2 . SentBy(client, x)@t2 ∧ t2 < t1 )"
+
+end

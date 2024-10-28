@@ -1,0 +1,21 @@
+Types:
+    A : Agent;
+    B : Agent;
+    E : Attacker;
+    Kab : Symmetric_key;
+    N1, N2 : Nonce;
+    M  : Message;
+
+Attack Trace:
+
+// Session 1
+E(B) -> A : N1;
+A -> E : N1;
+E -> A : senc{N1}_Kab;
+A -> E : senc{M}_Kab;
+
+// Session 2
+E(B) -> A : N2;
+A -> E : N2;
+E -> A : senc{N2}_Kab;
+A -> E : senc{M}_Kab;

@@ -1,0 +1,122 @@
+theory One begin
+
+// Function signature and definition of the equational theory E
+
+functions: fst/1, pair/2, sdec/2, senc/2, snd/1
+equations:
+    fst(<x.1, x.2>) = x.1,
+    sdec(senc(x.1, x.2), x.2) = x.1,
+    snd(<x.1, x.2>) = x.2
+
+
+
+
+
+
+
+rule (modulo E) Symmetric_key_setup:
+   [ Fr( ~symK ) ] --> [ !Key( $A, $B, ~symK ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Init_Knowledge:
+   [ !Key( $A, $B, k_A_B ), Fr( ~M ) ]
+  -->
+   [ St_init_A( $A, $B, ~M, k_A_B ), St_init_B( $A, $B, k_A_B ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) msg1_A:
+   [ St_init_A( A, B, M, k_A_B ), Fr( ~N ) ]
+  --[ FreshTerm( A, M ) ]->
+   [ Out( ~N ), St_msg1_A( A, B, M, ~N, k_A_B ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) msg2_A:
+   [ St_msg1_A( A, B, M, N, k_A_B ), In( senc(N, k_A_B) ) ]
+  -->
+   [ St_msg2_A( A, B, M, N, k_A_B ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) msg3_A:
+   [ St_msg2_A( A, B, M, N, k_A_B ) ]
+  --[ FreshTerm( A, M ) ]->
+   [ Out( senc(M, k_A_B) ), St_msg3_A( A, B, M, N, k_A_B ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) msg1_B:
+   [ St_init_B( A, B, k_A_B ), In( N ) ] --> [ St_msg1_B( A, B, N, k_A_B ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) msg2_B:
+   [ St_msg1_B( A, B, N, k_A_B ) ]
+  -->
+   [ Out( senc(N, k_A_B) ), St_msg2_B( A, B, N, k_A_B ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) msg3_B:
+   [ St_msg2_B( A, B, N, k_A_B ), In( senc(M, k_A_B) ) ]
+  -->
+   [ St_msg3_B( A, B, M, N, k_A_B ) ]
+
+  /* has exactly the trivial AC variant */
+
+lemma freshness:
+  all-traces
+  "¬(∃ party mess #t1 #t2.
+      ((FreshTerm( party, mess ) @ #t1) ∧ (FreshTerm( party, mess ) @ #t2)) ∧
+      (#t1 < #t2))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ party mess #t1 #t2.
+  (FreshTerm( party, mess ) @ #t1) ∧ (FreshTerm( party, mess ) @ #t2)
+ ∧
+  #t1 < #t2"
+*/
+simplify
+solve( FreshTerm( party, mess ) @ #t1 )
+  case msg1_A
+  solve( St_init_A( party, B, mess, k_A_B ) ▶₀ #t1 )
+    case Init_Knowledge
+    solve( FreshTerm( $A, ~M ) @ #t2 )
+      case msg3_A
+      solve( St_msg2_A( $A, B.1, ~M, N.1, k_A_B ) ▶₀ #t2 )
+        case msg2_A
+        solve( !KU( senc(~N, ~symK) ) @ #vk )
+          case msg2_B
+          solve( !KU( ~N ) @ #vk.1 )
+            case msg1_A
+            SOLVED // trace found
+          qed
+        qed
+      qed
+    qed
+  qed
+qed
+
+
+
+
+
+
+
+
+
+
+
+/* All wellformedness checks were successful. */
+
+/*
+Generated from:
+Tamarin version 1.9.0
+Maude version 2.7.1
+Git revision: ea7b979e436fc32f98369dd4e349fa0c6f1b1efd, branch: develop
+Compiled at: 2024-07-07 08:40:09.374915591 UTC
+*/
+
+end
