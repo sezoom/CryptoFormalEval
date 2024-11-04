@@ -78,7 +78,7 @@ Contributions are welcome! Please follow these steps to contribute:
 
 ## Inspecting Dataset and Results
 
-In order to preserve the dataset from LLM memorization, we release it privately by sharing the password to decrypt the [dataset.zip](dataset.zip) file under [LICENSE](LICENSE).
+In order to preserve the dataset from LLM memorization, we release the password decrypt the [dataset.zip](dataset.zip) file upon request, and under the terms outlined in the [LICENSE](LICENSE).
 
 ## License
 

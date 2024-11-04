@@ -1,5 +1,5 @@
 src/.env
-src/dataset
+src/dataset_secret
 src/Resources
 LangChain/
 # Byte-compiled / optimized / DLL files
