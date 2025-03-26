@@ -64,7 +64,12 @@ class InteractionLogger:
     def _save_interactions(self):
         """
         Saves the current interactions to the interactions file in JSON format.
+        Ensures the directory exists before writing the file.
         """
+        # Create the directory path if it doesn't exist
+        os.makedirs(os.path.dirname(self.json_path), exist_ok=True)
+
+        # Save the interactions
         with open(self.json_path, "w") as file:
             json.dump(self.interactions, file, indent=4)
 

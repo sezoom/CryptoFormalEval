@@ -55,7 +55,7 @@ if env_path:
     os.environ['PATH'] = env_path + ':' + os.environ.get('PATH', '')
     print("Updated PATH:", os.environ['PATH'])
 else:
-    print("PATH not found in .env")
+    print("PATH for Tamarin not found in .env")
 
 def read_output(process):
     for line in iter(process.stdout.readline, ''):

@@ -31,7 +31,7 @@ dnspython==2.6.1
 email_validator==2.1.1
 executing==2.0.1
 fastapi==0.110.3
-fastapi-cli==0.0.4
+fastapi-cli
 fastjsonschema==2.20.0
 filelock==3.15.4
 fonttools==4.53.1
@@ -196,7 +196,7 @@ tqdm==4.66.4
 traitlets==5.14.3
 transformers==4.44.2
 triton==3.0.0
-typer==0.9.4
+typer
 types-python-dateutil==2.9.0.20240316
 typing-inspect==0.9.0
 typing_extensions==4.12.2

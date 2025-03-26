@@ -20,7 +20,7 @@ if env_path:
     os.environ['PATH'] = env_path + ':' + os.environ.get('PATH', '')
     # print("Updated PATH:", os.environ['PATH'])
 else:
-    print("PATH not found in .env")
+    print("PATH for Tamarin execution not found in .env")
 
 # Update model config to try a new core LLM
 MODEL_CONFIGS = {
