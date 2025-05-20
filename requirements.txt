@@ -171,7 +171,7 @@ rpds-py==0.18.1
 rsa==4.9
 safetensors==0.4.5
 Send2Trash==1.8.3
-setuptools==69.5.1
+setuptools==78.1.1
 shellingham==1.5.4
 six==1.16.0
 smmap==5.0.1
