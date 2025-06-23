@@ -18,8 +18,8 @@ DEFAULT_TIMER_DURATION = 200
 DEFAULT_URL = 'http://127.0.0.1:3001/thy/trace/1/overview/help'
 DEFAULT_HOST = '127.0.0.1'
 DEFAULT_PORT = 3003
-DEFAULT_OUTPUT_DIR = './Agent_execution'
-DEFAULT_TRACES_PATH = './Agent_execution/traces.json'
+DEFAULT_OUTPUT_DIR = './agent_execution'
+DEFAULT_TRACES_PATH = './agent_execution/traces.json'
 
 # Helper function to fetch environment variable or raise an exception if not found and no default is provided
 def get_env_var(var_name, default=None, required=False):

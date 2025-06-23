@@ -98,9 +98,11 @@ class Agent:
     def __is_safe_command(command) -> bool:
         # Check for dangerous patterns
         if 'cd ' in command or '../' in command or command.startswith('/'):
+            print("command not safe, it contains cd or ../ ")
             return False
         # Remove the possibility of changing environment variables
         if 'export ' in command:
+            print("command not safe, it contains export  ")
             return False
         return True
 
