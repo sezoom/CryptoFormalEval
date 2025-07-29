@@ -2,6 +2,7 @@ import os
 import subprocess
 import tiktoken
 from datetime import datetime
+#from langchain_openai import ChatOpenAI, OpenAI
 from langchain_openai import ChatOpenAI
 from langchain_anthropic import ChatAnthropic
 from langchain_core.output_parsers import StrOutputParser
@@ -11,27 +12,75 @@ from prompts.Examples import *
 from prompts.Systems import *
 from prompts.Tests import *
 from history_run.json_store import *
+from langchain_openai import ChatOpenAI, OpenAI as LangChainOpenAI
+from openai import OpenAI as OpenAISDK
+from langchain_core.runnables import RunnableLambda
 
 
-load_dotenv(override=True)
 env_path = os.getenv('PATH')
+load_dotenv(override=True)
+dotenv_path = os.getenv('PATH')
 
-if env_path:
-    os.environ['PATH'] = env_path + ':' + os.environ.get('PATH', '')
-    # print("Updated PATH:", os.environ['PATH'])
+if dotenv_path:
+    os.environ['PATH'] = env_path + ':' + dotenv_path
+    #print("Updated PATH:", os.environ['PATH'])
 else:
     print("PATH for Tamarin execution not found in .env")
 
 # Update model config to try a new core LLM
+# MODEL_CONFIGS = {
+#     "gpt-4-turbo": {"max_tokens": 128000, "up_training_date": "Dec 2023"},
+#     "gpt-4o": {"max_tokens": 128000, "up_training_date": "Oct 2023"},
+#     "gpt-3.5-turbo-0125": {"max_tokens": 16384, "up_training_date": "Sep 2021"},
+#     "gpt-4o-mini": {"max_tokens": 16384, "up_training_date": "Oct 2023"},
+#     "claude-3-5-sonnet-20240620": {"max_tokens": 200000, "up_training_date": "Apr 2024"},
+#     "claude-3-haiku-20240307": {"max_tokens": 200000, "up_training_date": "Aug 2023"},
+#     "claude-3-opus-20240229": {"max_tokens": 200000, "up_training_date": "Aug 2023"},
+#     "o1-preview-2024-09-12": {"max_tokens": 128000, "up_training_date": "Oct 2023"}
+# }
 MODEL_CONFIGS = {
-    "gpt-4-turbo": {"max_tokens": 128000, "up_training_date": "Dec 2023"},
-    "gpt-4o": {"max_tokens": 128000, "up_training_date": "Oct 2023"},
-    "gpt-3.5-turbo-0125": {"max_tokens": 16384, "up_training_date": "Sep 2021"},
-    "gpt-4o-mini": {"max_tokens": 16384, "up_training_date": "Oct 2023"},
-    "claude-3-5-sonnet-20240620": {"max_tokens": 200000, "up_training_date": "Apr 2024"},
-    "claude-3-haiku-20240307": {"max_tokens": 200000, "up_training_date": "Aug 2023"},
-    "claude-3-opus-20240229": {"max_tokens": 200000, "up_training_date": "Aug 2023"},
-    "o1-preview-2024-09-12": {"max_tokens": 128000, "up_training_date": "Oct 2023"}
+
+    "gpt-4o": {
+        "max_tokens": 128000,
+        "up_training_date": "Oct 2023"
+    },
+    "o1": {
+        "max_tokens": 128_000,
+        "up_training_date": "Sep 2024",
+    },
+    "gpt-4.1": {
+        "max_tokens": 128_000,
+        "up_training_date": "Apr 2025",
+    },
+    "gpt-4.1-mini": {
+        "max_tokens": 16_384,
+        "up_training_date": "Apr 2025",
+    },
+    "gpt-4.1-nano": {
+        "max_tokens": 8_192,
+        "up_training_date": "Apr 2025",
+    },
+    "o3": {
+        "max_tokens":128_000,
+        "up_training_date": "2025-04-16",
+    },
+    # "o1-pro": {
+    #     "max_tokens": 128_000,
+    #     "up_training_date": "Mar 2025",
+    # },
+    # "o3-pro": {
+    #     "max_tokens": 128_000,
+    #     "up_training_date": "Jun 2025",
+    # },
+    # "claude-3-5-sonnet-20240620": {
+    #     "max_tokens": 200000,
+    #     "up_training_date": "Apr 2024"},
+    # "claude-3-haiku-20240307": {
+    #     "max_tokens": 200000,
+    #     "up_training_date": "Aug 2023"},
+    # "claude-3-opus-20240229": {
+    #     "max_tokens": 200000,
+    #     "up_training_date": "Aug 2023"},
 }
 
 class Agent:
@@ -60,6 +109,8 @@ class Agent:
             elif "claude" in self.model_name:
                 self.llm = ChatAnthropic(model_name=self.model_name, temperature=0.1, verbose=True)
             elif "o1" in self.model_name:
+                self.llm = ChatOpenAI(model_name=self.model_name, temperature=1, verbose=True)
+            elif "o3" in self.model_name:
                 self.llm = ChatOpenAI(model_name=self.model_name, temperature=1, verbose=True)
         else:
             raise ValueError("Model name not found!")
@@ -98,32 +149,34 @@ class Agent:
     def __is_safe_command(command) -> bool:
         # Check for dangerous patterns
         if 'cd ' in command or '../' in command or command.startswith('/'):
+            print("command not safe, it contains cd or ../ ")
             return False
         # Remove the possibility of changing environment variables
-        if 'export ' in command:
+        if 'export ' in command or '.env' in command:
+            print("command not safe, it contains export or .env ")
             return False
         return True
 
     def __execute_safe_command(self, command: str) -> str:
         """Block cd commands and read/modify out of the agent directory, changing environment vars."""
         if self.__is_safe_command(command=command):
-                try:
-                    print(command)
-                    env = os.environ.copy()
-                    # Modify env if necessary
-                    result=subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE,
-                                            text=True, env=env, timeout=self.timeout)
-                    print(result.stdout)
-                    return result.stdout
-                except subprocess.CalledProcessError as e:
-                    # Combine stdout and stderr for better diagnosis
-                    error_message = f"{e.stderr} {e.stdout}" if e.stderr or e.stdout else "No error message available"
-                    print(f"Command '{command}' failed with error: {error_message}")
-                    return f"Command '{command}' failed with error: {error_message}"
-                except subprocess.TimeoutExpired:
-                    print("The command took too long and was terminated.")
-                except Exception as e:
-                    print(f"An unexpected error occurred: {e}")
+            try:
+                print(command)
+                env = os.environ.copy()
+                # Modify env if necessary
+                result=subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE,
+                                      text=True, env=env, timeout=self.timeout)
+                print(result.stdout)
+                return result.stdout
+            except subprocess.CalledProcessError as e:
+                # Combine stdout and stderr for better diagnosis
+                error_message = f"{e.stderr} {e.stdout}" if e.stderr or e.stdout else "No error message available"
+                print(f"Command '{command}' failed with error: {error_message}")
+                return f"Command '{command}' failed with error: {error_message}"
+            except subprocess.TimeoutExpired:
+                print("The command took too long and was terminated.")
+            except Exception as e:
+                print(f"An unexpected error occurred: {e}")
         else:
             return f"Command '{command}' is not allowed."
 
@@ -273,8 +326,8 @@ class Agent:
 
                 index2= next_step.find("{Example}")
                 aux2 = next_step[index2:].format(
-                Example = "\n".join(self.examplelist[self.task_number - 1]),
-                Task = self.test
+                    Example = "\n".join(self.examplelist[self.task_number - 1]),
+                    Task = self.test
                 )
                 return next_step[:index1] + aux1 + next_step[index1+len1 : index2] + aux2
 
@@ -308,9 +361,9 @@ class Agent:
             # Test is content of agent_execution/tamarintrace.txt and agent_execution/MyTraces.txt
             try:
                 tamarin_trace: str = subprocess.run(['cat', os.path.join(os.getcwd(), 'agent_execution', 'tamarintrace.txt')],
-                                              capture_output=True, text=True).stdout
+                                                    capture_output=True, text=True).stdout
                 llm_trace: str = subprocess.run(['cat', os.path.join(os.getcwd(), 'agent_execution', 'MyTraces.txt')],
-                                          capture_output=True, text=True).stdout
+                                                capture_output=True, text=True).stdout
                 self.test = f"This the LLM-generated attack trace: {llm_trace} \n This is the attack produced by Tamarin: {tamarin_trace}\n"
             except Exception as e:
                 print("Error in reading tamarintrace.txt or MyTraces.txt: ", e)
@@ -404,17 +457,15 @@ class Agent:
             chain_count += 1
             print(f"Number of LLM calls: {chain_count}")
 
-
             if (("**Next step**" in all_llm_output or "**Next step:**" in all_llm_output  or all_llm_output == "") and not error_tag) or task_repeated >= self.max_repeated_task:  # Repeat or go ahead?
                 # Go ahead
                 self.task_number += 1
                 shell_feedback = ""
                 executed_commands_list=[]
                 task_repeated = 0
-
                 # Automatic executions before starting, just once!
                 if self.task_number == 5:
-                    command = "python3 middleware/src/middleware.py agent_execution/final_protocol_and_property.spthy"
+                    command = f"python3 middleware/src/middleware.py agent_execution/final_protocol_and_property.spthy"
                     shell_feedback = self.__execute_safe_command(command)
                     executed_commands_list.append(command)
 
@@ -428,7 +479,6 @@ class Agent:
             next_step = self.build_next_step_prompt(all_llm_summary, "\n".join(executed_commands_list), shell_feedback, task_repeated)
 
             complete_prompt = self.SystemPrompt.format(summary=all_llm_summary, next_step=next_step)
-
             # API CALL
             # response = self.chain.invoke({"summary": all_llm_summary, "next_step": next_step})
             response= self.chain.invoke({'SystemPrompt': self.SystemPrompt.format( summary=all_llm_summary, next_step= next_step)})
@@ -439,6 +489,8 @@ class Agent:
             executed_commands_list=[]
             # Command execution
             shell_command_list = self.__map_output_to_command(response)
+            #print("DEBUG,response",response)
+            #print("DEBUG,CommandLinst: ",shell_command_list)
             for command in shell_command_list:
                 shell_feedback +=  self.__execute_safe_command(command) + "\n"
                 executed_commands_list.append(command)
@@ -498,6 +550,7 @@ class Agent:
 
         print("Input Token Count: ", self.count_input_token)
         print("Output Token Count: ", self.count_output_token)
+
         self.__move_files()  # Move all files to the id folder execution
         return [all_llm_output, self.run_id_dir]
 

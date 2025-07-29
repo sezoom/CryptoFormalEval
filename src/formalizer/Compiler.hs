@@ -18,7 +18,7 @@ import Checker.CheckResult
 import Rewriter.Rewriter
 import Translator.Translator
 import Data.Either
-
+import Control.Monad (when)
 {------------------------------------------------------------------------------}
 {-- ANALYZING COMMAND LINE ARGUMENTS --}
       

@@ -8,7 +8,8 @@ module Translator.Printer where
 import Translator.State
 import Data.List (replicate)
 import Data.List.Split (splitOn)
-import Control.Monad.State (when)
+import Control.Monad (when)
+import Control.Monad.State
 
 {- | Maximum width of a line. 
      The compiler will try to produce no lines that are longer than this, 

@@ -9,8 +9,16 @@ from readtraces import read_traces
 
 from dotenv import load_dotenv
 
-if not load_dotenv(dotenv_path=  "./../../", override=True ):
-    print(".env file not found")
+env_path = os.getenv('PATH')
+load_dotenv(override=True)
+dotenv_path = os.getenv('PATH')
+
+if dotenv_path:
+    os.environ['PATH'] = env_path + ':' + dotenv_path
+    #print("Updated PATH:", os.environ['PATH'])
+else:
+    print("PATH for Tamarin execution not found in .env")
+
 
 # Hard-coded fallback values
 DEFAULT_TAMARIN_COMMAND = 'tamarin-prover'
@@ -18,8 +26,8 @@ DEFAULT_TIMER_DURATION = 200
 DEFAULT_URL = 'http://127.0.0.1:3001/thy/trace/1/overview/help'
 DEFAULT_HOST = '127.0.0.1'
 DEFAULT_PORT = 3003
-DEFAULT_OUTPUT_DIR = './Agent_execution'
-DEFAULT_TRACES_PATH = './Agent_execution/traces.json'
+DEFAULT_OUTPUT_DIR = './agent_execution'
+DEFAULT_TRACES_PATH = './agent_execution/traces.json'
 
 # Helper function to fetch environment variable or raise an exception if not found and no default is provided
 def get_env_var(var_name, default=None, required=False):
@@ -50,12 +58,6 @@ traces_path = get_env_var('TRACES_PATH', DEFAULT_TRACES_PATH, required=True)
 # traces_path = os.getenv('TRACES_PATH')
 # env_path = os.getenv('PATH')
 
-env_path = os.getenv('PATH')
-if env_path:
-    os.environ['PATH'] = env_path + ':' + os.environ.get('PATH', '')
-    print("Updated PATH:", os.environ['PATH'])
-else:
-    print("PATH for Tamarin not found in .env")
 
 def read_output(process):
     for line in iter(process.stdout.readline, ''):
