@@ -23,7 +23,7 @@ We introduce a benchmark for testing how well LLMs can find vulnerabilities in c
 1. Clone and move into the repository:
 
    ```bash
-   git clone git@github.com:Cristian-Curaba/CryptoFormalEval.git
+   git clone git@github.com:sezoom/CryptoFormalEval.git
    cd CryptoFormalEval
    ```
 2. Create a virtual environment:
