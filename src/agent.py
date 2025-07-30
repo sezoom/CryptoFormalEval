@@ -2,6 +2,8 @@ import os
 import subprocess
 import tiktoken
 from datetime import datetime
+
+from langchain_google_genai import ChatGoogleGenerativeAI
 #from langchain_openai import ChatOpenAI, OpenAI
 from langchain_openai import ChatOpenAI
 from langchain_anthropic import ChatAnthropic
@@ -64,6 +66,22 @@ MODEL_CONFIGS = {
         "max_tokens":128_000,
         "up_training_date": "2025-04-16",
     },
+    "gemini-1.5-flash": {
+        "max_tokens": 8192,
+        "up_training_date": "November 2023",
+    },
+    "gemini-1.5-pro": {
+        "max_tokens": 8192,
+        "up_training_date": "November 2023",
+    },
+    "gemini-2.5-flash": {
+        "max_tokens": 65536,
+        "up_training_date": "January 2025",
+    },
+    "gemini-2.5-pro": {
+        "max_tokens": 65536,
+        "up_training_date": "January 2025",
+    },
     # "o1-pro": {
     #     "max_tokens": 128_000,
     #     "up_training_date": "Mar 2025",
@@ -112,6 +130,14 @@ class Agent:
                 self.llm = ChatOpenAI(model_name=self.model_name, temperature=1, verbose=True)
             elif "o3" in self.model_name:
                 self.llm = ChatOpenAI(model_name=self.model_name, temperature=1, verbose=True)
+            elif "gemini" in self.model_name:
+                self.llm = ChatGoogleGenerativeAI(
+                    model=self.model_name,
+                    temperature=0.1,
+                    verbose=True,
+                    max_output_tokens=self.max_tokens
+                )
+
         else:
             raise ValueError("Model name not found!")
 
